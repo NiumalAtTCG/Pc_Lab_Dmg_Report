@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab PC Damage Reporter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header><h1>Lab PC Damage Reporter</h1><p>Scan the sticker on the PC, describe the problem, send. Nothing is stored.</p></header>
+<nav role="tablist">
+<button class="on" data-tab="report" role="tab">Report damage</button>
+<button data-tab="qr" role="tab">QR stickers</button>
+<button data-tab="admin" role="tab">Catalog &amp; settings</button>
+<button class="btn alt" id="logout" type="button" hidden>Lock admin</button>
+</nav>
+<main>
+
+<section id="report" class="pane on">
+<form id="form" class="card" autocomplete="off" novalidate>
+<h2>Incident report</h2>
+<div id="idwarn" class="msg err"></div>
+<label for="pc">PC</label>
+<select id="pc"></select>
+<div class="lbl">Hardware (from catalog)</div>
+<dl class="specs" id="specs"></dl>
+
+<div class="lbl">What kind of damage?</div>
+<div class="chips" id="cats"></div>
+
+<label for="remarks">Remarks</label>
+<textarea id="remarks" maxlength="1500" placeholder="What happened? What does the screen or PC do?"></textarea>
+
+<label for="reporter">Your name or ID (optional)</label>
+<input type="text" id="reporter" maxlength="80">
+
+<div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+
+<div class="lbl">Send to <span class="badge" id="count">0 selected</span></div>
+<div id="recips"></div>
+<div class="row" style="margin-top:8px">
+<input type="email" id="custom" placeholder="Add custom email" aria-label="Custom email address">
+<button type="button" class="btn alt" id="addCustom">Add email</button>
+</div>
+
+<button class="btn full" id="send" type="submit">Send report</button>
+<div id="msg" class="msg" role="status"></div>
+</form>
+</section>
+
+<section id="gate" class="pane">
+<form id="gateForm" class="card" style="max-width:420px;margin:24px auto" autocomplete="off">
+<h2 id="gateTitle">Admin sign in</h2>
+<p class="small" id="gateHint"></p>
+<label for="gpw">Password</label>
+<input type="password" id="gpw" autocomplete="current-password">
+<div id="gconfWrap" hidden>
+<label for="gpw2">Confirm password</label>
+<input type="password" id="gpw2" autocomplete="new-password">
+</div>
+<button class="btn full" id="gateBtn" type="submit">Sign in</button>
+<div id="gmsg" class="msg" role="alert"></div>
+</form>
+</section>
+
+<section id="qr" class="pane">
+<div class="card noprint">
+<h2>Sticker sheet</h2>
+<p class="small">Each QR code holds only <code id="qrurl"></code>-style links. Specs are looked up when scanned, so stickers never need reprinting after a hardware change. If this site moves, set the site address under Catalog &amp; settings and reprint.</p>
+<button class="btn" id="print" type="button">Print stickers</button>
+</div>
+<div id="sheet"></div>
+</section>
+
+<section id="admin" class="pane">
+<div class="card">
+<h2>Edit PC specs</h2>
+<label for="apc">PC</label><select id="apc"></select>
+<div class="grid2" id="afields"></div>
+<div class="row" style="margin-top:14px;justify-content:flex-start">
+<button class="btn" id="saveSpec" type="button">Save specs</button>
+<button class="btn alt" id="resetSpec" type="button">Reset this PC</button>
+<button class="btn alt" id="resetAll" type="button">Reset all PCs</button>
+</div>
+<div id="amsg" class="msg" role="status"></div>
+<p class="small">Edits are saved in this browser only. To change specs for everyone, edit the catalog in this file and redeploy.</p>
+</div>
+
+<div class="card">
+<h2>Recipients</h2>
+<div id="rlist"></div>
+<button class="btn alt" id="addRow" type="button">Add recipient</button>
+<p class="small">Ticked recipients are pre-selected on the report form.</p>
+</div>
+
+<div class="card">
+<h2>Sending mode</h2>
+<div class="radio">
+<label><input type="radio" name="mode" value="mailto"> Open mail app (mailto)</label>
+<label><input type="radio" name="mode" value="webhook"> Send silently (webhook)</label>
+</div>
+<div id="hookbox">
+<label for="htype">Webhook type</label>
+<select id="htype"><option value="formspree">Formspree</option><option value="apps">Google Apps Script</option></select>
+<label for="hurl">Webhook URL</label>
+<input type="url" id="hurl" placeholder="https://formspree.io/f/xxxx or https://script.google.com/macros/s/.../exec">
+</div>
+<label for="base">Site address for QR codes (optional)</label>
+<input type="url" id="base" placeholder="Leave empty to use this page's address">
+<button class="btn full" id="saveSet" type="button">Save settings</button>
+<div id="smsg" class="msg" role="status"></div>
+</div>
+
+<div class="card">
+<h2>Admin password</h2>
+<div id="pwChangeWrap">
+<label for="npw">New password</label>
+<input type="password" id="npw" autocomplete="new-password">
+<label for="npw2">Confirm new password</label>
+<input type="password" id="npw2" autocomplete="new-password">
+<button class="btn" id="chgPw" type="button" style="margin-top:12px">Change password</button>
+</div>
+<div id="pmsg" class="msg" role="status"></div>
+<label for="hashOut">Lab-wide password hash</label>
+<div class="row"><input type="text" id="hashOut" readonly><button type="button" class="btn alt" id="copyHash">Copy</button></div>
+<p class="small" id="hashNote">By default the password is saved in this browser only. To use one password on every device, paste this hash into <code>ADMIN_HASH</code> near the top of the script and redeploy.</p>
+</div>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/report.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>

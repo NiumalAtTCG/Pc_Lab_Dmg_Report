@@ -1,0 +1,50 @@
+:root{--bg:#f4f6f8;--card:#fff;--ink:#16202e;--mute:#5d6b7c;--line:#d5dce4;--acc:#0e6f68;--accink:#fff;--err:#b3261e;--ok:#17653a;--chip:#e7f1f0}
+@media(prefers-color-scheme:dark){:root{--bg:#10161e;--card:#19212c;--ink:#e8edf3;--mute:#9aa7b6;--line:#2c3746;--acc:#3fb8ac;--accink:#06201d;--err:#ff8a80;--ok:#7fd8a0;--chip:#1f3330}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:16px 16px 0;max-width:960px;margin:auto}
+h1{font-size:1.25rem;margin:0}header p{margin:2px 0 0;color:var(--mute);font-size:.9rem}
+nav{display:flex;align-items:center;gap:4px;max-width:960px;margin:12px auto 0;padding:0 16px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;color:var(--mute);cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--ink);border-color:var(--acc);font-weight:600}
+nav #logout{margin-left:auto;padding:6px 12px;color:var(--ink)}
+main{max-width:960px;margin:auto;padding:16px}
+.pane{display:none}.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+h2{font-size:1.05rem;margin:0 0 10px}
+label,.lbl{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+input[type=text],input[type=email],input[type=url],input[type=password],select,textarea{width:100%;padding:10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+textarea{min-height:110px;resize:vertical}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+dl.specs{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}dl.specs dt{color:var(--mute)}dl.specs dd{margin:0;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}.chip input{position:absolute;opacity:0}
+.chip span{display:block;padding:8px 14px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-weight:500}
+.chip input:checked+span{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.chip input:focus-visible+span{outline:3px solid var(--acc);outline-offset:2px}
+.rec{display:flex;align-items:center;gap:8px;padding:6px 0;word-break:break-all}.rec input{width:18px;height:18px;flex:none}
+.badge{display:inline-block;background:var(--chip);color:var(--acc);border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:700;margin-left:6px}
+.row{display:flex;gap:8px}.row>*{flex:1}.row>button{flex:none}
+button.btn{background:var(--acc);color:var(--accink);border:0;border-radius:8px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer}
+button.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.btn:disabled{opacity:.55;cursor:not-allowed}
+[hidden]{display:none!important}
+.full{width:100%;margin-top:16px}
+.msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:.92rem;display:none}
+.msg.ok{display:block;background:var(--chip);color:var(--ok)}.msg.err{display:block;background:rgba(179,38,30,.12);color:var(--err)}
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.radio{display:flex;gap:16px;flex-wrap:wrap}.radio label{font-weight:500;margin:4px 0;display:flex;gap:6px;align-items:center}
+.small{color:var(--mute);font-size:.85rem}
+#sheet{display:grid;grid-template-columns:repeat(5,1fr);gap:0}
+.badgebox{border:1px dashed #9aa5b1;background:#fff;color:#000;text-align:center;padding:2.5mm 1mm;height:33mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;break-inside:avoid}
+.badgebox b{font-size:11pt;letter-spacing:.02em}.badgebox small{font-size:7pt}
+.qr{width:21mm;height:21mm}.qr img,.qr canvas{width:100%!important;height:100%!important;display:block}.qr canvas{display:none!important}
+@media(max-width:720px){#sheet{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.badgebox{height:auto;min-height:50mm}.qr{width:34mm;height:34mm}}
+@media print{
+@page{size:auto;margin:8mm}
+body{background:#fff}header,nav,.noprint,footer{display:none!important}
+.pane{display:none!important}#qr.pane{display:block!important}
+main{padding:0;max-width:none}#sheet{grid-template-columns:repeat(5,1fr)!important}
+.badgebox{height:33mm!important;min-height:0!important}.qr{width:21mm!important;height:21mm!important}
+}
