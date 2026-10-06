@@ -61,13 +61,31 @@ $('#form').addEventListener('submit',function(e){
   busy=true;var b=$('#send');b.disabled=true;b.textContent='Sending...';hide(m);
   if(S.mode==='webhook'){
     if(!S.hook.url){show(m,'err','Webhook URL is missing. Ask an admin to add it under Catalog & settings.');unlock();return}
+    var body;
+    var headers={'Accept':'application/json'};
+    if(S.hook.type==='apps'){
+      body=JSON.stringify(p);
+      headers['Content-Type']='text/plain;charset=utf-8';
+    }else{
+      body=JSON.stringify({
+        email:p.recipients[0],
+        subject:p.subject,
+        message:p.message,
+        pc_id:p.pc_id,
+        category:p.category,
+        reporter:p.reporter||'Not given',
+        timestamp:p.timestamp,
+        recipients:p.recipients.join(', ')
+      });
+      headers['Content-Type']='application/json';
+    }
     var opt=S.hook.type==='apps'
-      ?{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}
-      :{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(p)};
+      ?{method:'POST',mode:'no-cors',headers:headers,body:body}
+      :{method:'POST',headers:headers,body:body};
     fetch(S.hook.url,opt).then(function(r){
       if(S.hook.type!=='apps'&&!r.ok)throw new Error('HTTP '+r.status);
       show(m,'ok','Report sent to '+to.length+' recipient'+(to.length>1?'s':'')+'.');resetForm();setTimeout(unlock,4000);
-    }).catch(function(){show(m,'err','Could not send the report. Check your connection and try again.');unlock()});
+    }).catch(function(err){show(m,'err','Could not send the report. '+(err&&err.message?err.message:'Check your connection and try again.'));unlock()});
   }else{
     var url='mailto:'+encodeURIComponent(to[0]).replace(/%40/g,'@')+'?'+
       (to.length>1?'cc='+to.slice(1).map(function(a){return encodeURIComponent(a).replace(/%40/g,'@')}).join(',')+'&':'')+
