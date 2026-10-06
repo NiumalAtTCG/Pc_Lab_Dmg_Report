@@ -27,7 +27,7 @@ var DEF={emails:[
   {a:'hirushasilva64@gmail.com',on:true},
   {a:'it.support@lab.example',on:false},
   {a:'it.technician@lab.example',on:false}],
-  mode:'mailto',hook:{type:'formspree',url:''},base:'https://pclabreport.vercel.app/',specs:{},pw:''};
+  mode:'webhook',hook:{type:'formspree',url:'https://formspree.io/f/mdeakaog'},base:'https://pclabreport.vercel.app/',specs:{},pw:''};
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s==='object'){var d=clone(DEF);for(var k in s)d[k]=s[k];return d}}catch(e){}return clone(DEF)}
