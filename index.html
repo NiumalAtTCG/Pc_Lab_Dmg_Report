@@ -4,9 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lab PC Damage Reporter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden">
+  <div style="position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,168,190,0.18) 0%,transparent 70%);top:-120px;left:-100px;animation:blob1 18s ease-in-out infinite"></div>
+  <div style="position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,104,116,0.13) 0%,transparent 70%);bottom:-100px;right:-80px;animation:blob2 22s ease-in-out infinite"></div>
+</div>
+<style>
+@keyframes blob1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.08)}}
+@keyframes blob2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,-40px) scale(1.06)}}
+</style>
 <header><h1>Lab PC Damage Reporter</h1><p>Scan the sticker on the PC, describe the problem, send. Nothing is stored.</p></header>
 <nav role="tablist">
 <button class="on" data-tab="report" role="tab">Report damage</button>
