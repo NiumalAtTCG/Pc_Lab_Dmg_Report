@@ -345,18 +345,17 @@ button.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:non
 .badgebox b{font-size:11pt;letter-spacing:.02em}
 .badgebox small{font-size:7pt}
 .qr{width:21mm;height:21mm}
-.qr img,.qr canvas{width:100%!important;height:100%!important;display:block}
-.qr canvas{display:none!important}
+.qr img,.qr canvas{width:100%!important;height:100%!important;display:block!important}
 
 /* ── Responsive ── */
 @media(max-width:720px){
   header{padding:20px 16px 0}
   main{padding:14px}
   .card{padding:18px;border-radius:var(--radius-lg)}
-  #sheet{grid-template-columns:repeat(2,1fr)}
+  #sheet{grid-template-columns:repeat(2,1fr);gap:8px}
   .grid2{grid-template-columns:1fr}
-  .badgebox{height:auto;min-height:50mm}
-  .qr{width:34mm;height:34mm}
+  .badgebox{height:auto;min-height:unset;padding:8px 4px;gap:6px}
+  .qr{width:56px;height:56px}
   button.btn{padding:12px 20px}
 }
 
@@ -370,4 +369,5 @@ button.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:non
   #sheet{grid-template-columns:repeat(5,1fr)!important}
   .badgebox{height:33mm!important;min-height:0!important}
   .qr{width:21mm!important;height:21mm!important}
+  .qr canvas{display:block!important}
 }
