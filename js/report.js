@@ -120,6 +120,12 @@ function serializeSpecFields(raw) {
   return out;
 }
 
+function buildHardwareSheet(specs) {
+  return FIELDS.map(function (f) {
+    return f[1] + ' : ' + (specs[f[0]] || '—');
+  }).join('\n');
+}
+
 function serializeWebhookPayload(p) {
   var specs = serializeSpecFields(p.specs);
   var pcSerial = coerceSpecValue(p.pcSerial) || (specs.pcSerial !== '—' ? specs.pcSerial : '');
@@ -129,7 +135,7 @@ function serializeWebhookPayload(p) {
   if (specs.pcSerial === '—' && pcSerial !== 'Not given') specs.pcSerial = pcSerial;
   if (specs.monitorSerial === '—' && monitorSerial !== 'Not given') specs.monitorSerial = monitorSerial;
 
-  return {
+  var payload = {
     lab: p.lab,
     pc_id: p.pc_id,
     pcSerial: pcSerial,
@@ -142,8 +148,13 @@ function serializeWebhookPayload(p) {
     subject: p.subject,
     message: p.message,
     specs: specs,
-    hardware: specs
+    hardware: specs,
+    hardwareSheet: buildHardwareSheet(specs)
   };
+  FIELDS.forEach(function (f) {
+    payload[f[0]] = specs[f[0]];
+  });
+  return payload;
 }
 
 function buildReport(p) {
@@ -312,7 +323,7 @@ function validateReport(m) {
     timestamp: now.toLocaleString() + ' (' + Intl.DateTimeFormat().resolvedOptions().timeZone + ')',
     recipients: to
   };
-  p.subject = '[Lab PC Damage] ' + labName + ' / ' + pcId + ' - ' + p.category;
+  p.subject = '[URGENT DAMAGE REPORT] ' + pcId + ' - ' + p.category;
   p.message = buildReport(p);
   return p;
 }

@@ -40,6 +40,16 @@ function normalizeReportForApps(report) {
 
   report.specs = specs;
   report.hardware = specs;
+  SPEC_KEYS.forEach(function (key) {
+    report[key] = specs[key];
+  });
+  report.hardwareSheet = SPEC_KEYS.map(function (key) {
+    var labels = {
+      model: 'Model', cpu: 'CPU', ram: 'RAM', storage: 'Storage', gpu: 'GPU',
+      os: 'Operating system', pcSerial: 'PC Serial Number', monitorSerial: 'Monitor Serial Number'
+    };
+    return (labels[key] || key) + ' : ' + specs[key];
+  }).join('\n');
   if (report.pcSerial != null && coerceSpecString(report.pcSerial) !== '') {
     report.pcSerial = coerceSpecString(report.pcSerial);
     if (specs.pcSerial === '—') specs.pcSerial = report.pcSerial;
