@@ -4,7 +4,7 @@ var qpc=(params.get('pc')||'').trim();
 /* legacy ?id= support */
 var qid=(params.get('id')||'').trim().toUpperCase();
 
-var extra=[],busy=false;
+var busy=false;
 
 /* ── Lab/PC dropdown helpers ── */
 function populateReportLabs(){
@@ -74,36 +74,17 @@ function renderSpecs(){
 $('#pc').addEventListener('change',renderSpecs);
 $('#cats').innerHTML=CATS.map(function(c){return '<label class="chip"><input type="radio" name="cat" value="'+esc(c)+'"><span>'+esc(c)+'</span></label>';}).join('');
 
-function resetSel(){extra=[];}
-function allRecips(){var l=S.emails.map(function(e){return e.a;});extra.forEach(function(a){if(l.indexOf(a)<0)l.push(a);});return l;}
+function resetSel(){}
 function checkedRecips(){return $$('#recips input[type=checkbox]:checked').map(function(el){return el.dataset.a;});}
 function updateCount(){$('#count').textContent=checkedRecips().length+' selected';}
 function renderRecips(){
-  var l=allRecips();
   var preOn=new Set(S.emails.filter(function(e){return e.on;}).map(function(e){return e.a;}));
-  $('#recips').innerHTML=l.map(function(a){return '<label class="rec"><input type="checkbox" data-a="'+esc(a)+'"'+(preOn.has(a)?' checked':'')+'> <span>'+esc(a)+'</span></label>';}).join('')||'<p class="small">No recipients yet. Add one below.</p>';
+  $('#recips').innerHTML=S.emails.length
+    ?S.emails.map(function(e){return '<label class="rec"><input type="checkbox" data-a="'+esc(e.a)+'"'+(preOn.has(e.a)?' checked':'')+'> <span>'+esc(e.a)+'</span></label>';}).join('')
+    :'<p class="small">No recipients configured. Add emails under Catalog &amp; settings.</p>';
   updateCount();
 }
 $('#recips').addEventListener('change',updateCount);
-
-function addCustom(){
-  var el=$('#custom'),v=el.value.trim(),m=$('#msg');
-  if(!v)return;
-  if(!EMAIL.test(v)){show(m,'err','Enter a valid email address, like name@example.com.');return;}
-  hide(m);
-  var vl=v.toLowerCase();
-  /* preserve existing checked state before re-render */
-  var wasChecked=checkedRecips();
-  if(allRecips().map(function(x){return x.toLowerCase();}).indexOf(vl)<0)extra.push(v);
-  el.value='';renderRecips();
-  /* re-check previously checked + the new one */
-  $$('#recips input[type=checkbox]').forEach(function(cb){
-    if(wasChecked.indexOf(cb.dataset.a)>-1||cb.dataset.a.toLowerCase()===vl)cb.checked=true;
-  });
-  updateCount();
-}
-$('#addCustom').addEventListener('click',addCustom);
-$('#custom').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addCustom();}});
 
 function buildReport(p){
   var s=p.specs;

@@ -55,10 +55,6 @@
 
 <div class="lbl">Send to <span class="badge" id="count">0 selected</span></div>
 <div id="recips"></div>
-<div class="row" style="margin-top:8px">
-<input type="email" id="custom" placeholder="Add custom email" aria-label="Custom email address">
-<button type="button" class="btn alt" id="addCustom">Add email</button>
-</div>
 
 <button class="btn full" id="send" type="submit">Send report</button>
 <div id="msg" class="msg" role="status"></div>
@@ -117,10 +113,14 @@
 </div>
 
 <div class="card">
-<h2>Recipients</h2>
+<h2>Add Email</h2>
 <div id="rlist"></div>
-<button class="btn alt" id="addRow" type="button">Add recipient</button>
-<p class="small" style="margin-top:10px">Ticked recipients are pre-selected on the report form.</p>
+<div class="row" style="margin-top:10px;align-items:center">
+<input type="email" id="newEmail" placeholder="Enter email address" aria-label="New email address">
+<button class="btn" id="addRow" type="button" style="flex:none">Add</button>
+</div>
+<p class="small" style="margin-top:10px">Tick an address to pre-select it on the report form by default.</p>
+<div id="emailmsg" class="msg" role="status"></div>
 </div>
 
 <div class="card">

@@ -56,14 +56,39 @@ $('#saveSpec').addEventListener('click',function(){
 $('#resetSpec').addEventListener('click',function(){var id=$('#apc').value;delete S.specs[id];save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok',id+' reset to defaults.')});
 $('#resetAll').addEventListener('click',function(){if(!confirm('Reset all PCs to the built-in specs?'))return;S.specs={};save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok','All PCs reset to defaults.')});
 
-/* Recipients + sending settings */
+/* ── Recipients ── */
 var rows=[];
 function renderRows(){
-  $('#rlist').innerHTML=rows.map(function(r,i){return '<div class="row" style="align-items:center;margin-bottom:6px"><input type="checkbox" data-i="'+i+'" data-k="on" style="flex:none;width:20px;height:20px"'+(r.on?' checked':'')+' aria-label="Pre-select"><input type="email" data-i="'+i+'" data-k="a" value="'+esc(r.a)+'" aria-label="Email"><button type="button" class="btn alt" data-del="'+i+'">Remove</button></div>'}).join('');
+  $('#rlist').innerHTML=rows.map(function(r,i){
+    return '<div class="row" style="align-items:center;margin-bottom:6px">'+
+      '<input type="checkbox" data-i="'+i+'" data-k="on" style="flex:none;width:20px;height:20px"'+(r.on?' checked':'')+' aria-label="Pre-select">'+
+      '<span style="flex:1;font-size:var(--ts-sm);word-break:break-all">'+esc(r.a)+'</span>'+
+      '<button type="button" class="btn alt" data-del="'+i+'">Remove</button>'+
+    '</div>';
+  }).join('')||'<p class="small">No emails yet. Add one below.</p>';
 }
-$('#rlist').addEventListener('input',function(e){var t=e.target,i=t.dataset.i;if(i==null)return;rows[i][t.dataset.k]=t.type==='checkbox'?t.checked:t.value});
-$('#rlist').addEventListener('click',function(e){var d=e.target.dataset.del;if(d==null)return;rows.splice(+d,1);renderRows()});
-$('#addRow').addEventListener('click',function(){rows.push({a:'',on:false});renderRows()});
+function persistEmails(){
+  S.emails=rows.map(function(r){return{a:r.a,on:!!r.on};});
+  save();renderRecips();
+}
+$('#rlist').addEventListener('change',function(e){
+  var t=e.target,i=t.dataset.i;
+  if(i==null||t.dataset.k!=='on')return;
+  rows[+i].on=t.checked;persistEmails();
+});
+$('#rlist').addEventListener('click',function(e){
+  var d=e.target.dataset.del;
+  if(d==null)return;
+  rows.splice(+d,1);renderRows();persistEmails();
+});
+$('#addRow').addEventListener('click',function(){
+  var m=$('#emailmsg'),v=$('#newEmail').value.trim();
+  if(!v){show(m,'err','Enter an email address.');return;}
+  if(!EMAIL.test(v)){show(m,'err','"'+v+'" is not a valid email address.');return;}
+  if(rows.some(function(r){return r.a.toLowerCase()===v.toLowerCase();})){show(m,'err','That address is already in the list.');return;}
+  rows.push({a:v,on:false});$('#newEmail').value='';
+  renderRows();persistEmails();show(m,'ok','"'+v+'" added.');
+});
 
 function syncHook(){$('#hookbox').style.display=document.querySelector('input[name=mode]:checked').value==='webhook'?'block':'none'}
 $$('input[name=mode]').forEach(function(r){r.addEventListener('change',syncHook)});
@@ -74,16 +99,15 @@ function loadSettings(){
   $('#htype').value=S.hook.type;$('#hurl').value=S.hook.url;$('#base').value=S.base;syncHook();
 }
 $('#saveSet').addEventListener('click',function(){
-  var m=$('#smsg'),clean=[],seen={};
-  for(var i=0;i<rows.length;i++){var a=rows[i].a.trim();if(!a)continue;if(!EMAIL.test(a)){show(m,'err','"'+a+'" is not a valid email address.');return}if(seen[a.toLowerCase()])continue;seen[a.toLowerCase()]=1;clean.push({a:a,on:!!rows[i].on})}
+  var m=$('#smsg');
   var mode=document.querySelector('input[name=mode]:checked').value,url=$('#hurl').value.trim(),base=$('#base').value.trim();
   if(mode==='webhook'&&!/^https:\/\//i.test(url)){show(m,'err','Enter a webhook URL that starts with https://');return}
   if(base&&!/^https?:\/\//i.test(base)){show(m,'err','The site address must start with https://');return}
   var baseChanged=base!==S.base;
-  S.emails=clean;S.mode=mode;S.hook={type:$('#htype').value,url:url};S.base=base.replace(/\/+$/,base.indexOf('?')>-1?'':'/');
+  S.mode=mode;S.hook={type:$('#htype').value,url:url};S.base=base.replace(/\/+$/,base.indexOf('?')>-1?'':'/');
   if(!save()){show(m,'err','Could not save in this browser.');return}
   if(baseChanged)qrDirty=true;
-  resetSel();renderRecips();loadSettings();show(m,'ok','Settings saved.');
+  loadSettings();show(m,'ok','Settings saved.');
 });
 
 /* Init */
