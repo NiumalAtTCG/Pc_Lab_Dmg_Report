@@ -29,7 +29,8 @@ function renderQR(){
       var url=baseUrl()+'?lab='+encodeURIComponent(lab.name)+'&pc='+encodeURIComponent(pc);
       var pcShort=pc.split(' - ')[1]||pc;
       var d=document.createElement('div');
-      d.className='badgebox';
+      d.className='badgebox qr-sticker';
+      d.setAttribute('data-sticker','');
       d.innerHTML=
         '<div class="badge-header">'+esc(lab.name)+'</div>'+
         '<div class="badge-body">'+
