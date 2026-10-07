@@ -4,16 +4,18 @@ var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'
 var KEY='labpc.v1';
 var LAB_KEY='pc_lab_config';
 var LAB_VER_KEY='pc_lab_ver';
-var LAB_VER=2; /* bump this whenever default labs/catalog change */
+var LAB_VER=3; /* bump this whenever default labs/catalog change */
 
 var IDS=[];
 
 /* Dynamic lab config */
 var DEFAULT_LABS=[{name:'Lab A',count:6},{name:'Lab B',count:6},{name:'Lab C',count:4}];
-function loadLabs(){
-  /* If stored version is outdated, wipe and reseed with current defaults */
+/* Run once before load() — wipes stale data if version is outdated */
+(function initVersion(){
   var ver=parseInt(localStorage.getItem(LAB_VER_KEY))||0;
   if(ver<LAB_VER){localStorage.removeItem(LAB_KEY);localStorage.removeItem(KEY);localStorage.setItem(LAB_VER_KEY,LAB_VER);}
+})();
+function loadLabs(){
   try{var d=JSON.parse(localStorage.getItem(LAB_KEY));if(Array.isArray(d)&&d.length)return d;}catch(e){}
   return DEFAULT_LABS;
 }
