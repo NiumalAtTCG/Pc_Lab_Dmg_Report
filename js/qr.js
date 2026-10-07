@@ -4,6 +4,19 @@ function populateQRLabs(){
     labs.map(function(l){return '<option value="'+esc(l.name)+'">'+esc(l.name)+'</option>';}).join('');
 }
 
+function normalizeQrSticker(wrap){
+  if(!wrap)return;
+  wrap.style.cssText='';
+  var img=wrap.querySelector('img');
+  if(img)img.style.display='none';
+  var canvas=wrap.querySelector('canvas');
+  if(canvas){
+    canvas.style.display='block';
+    canvas.style.margin='0';
+    canvas.style.float='none';
+  }
+}
+
 function renderQR(){
   var g=$('#sheet');
   var labs=loadLabs();
@@ -39,7 +52,8 @@ function renderQR(){
         '</div>'+
         '<div class="badge-footer">Scan to Report Damage</div>';
       g.appendChild(d);
-      new QRCode(d.querySelector('.qr-code-wrapper'),{
+      var qrWrap=d.querySelector('.qr-code-wrapper');
+      new QRCode(qrWrap,{
         text:url,
         width:120,
         height:120,
@@ -47,6 +61,7 @@ function renderQR(){
         colorLight:'#ffffff',
         correctLevel:QRCode.CorrectLevel.L
       });
+      normalizeQrSticker(qrWrap);
     });
   });
   qrDirty=false;
