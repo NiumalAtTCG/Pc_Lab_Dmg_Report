@@ -68,8 +68,6 @@ function renderSpecs(){
     if(f[0]==='pcSerial'||f[0]==='monitorSerial')return '<dt>'+f[1]+'</dt><dd>'+(s[f[0]]?esc(s[f[0]]):'\u2014')+'</dd>';
     return '<dt>'+f[1]+'</dt><dd>'+esc(s[f[0]]||'\u2014')+'</dd>';
   }).join('');
-  $('#pcSerial').value=s.pcSerial||'';
-  $('#monitorSerial').value=s.monitorSerial||'';
 }
 $('#pc').addEventListener('change',renderSpecs);
 $('#cats').innerHTML=CATS.map(function(c){return '<label class="chip"><input type="radio" name="cat" value="'+esc(c)+'"><span>'+esc(c)+'</span></label>';}).join('');
@@ -97,7 +95,6 @@ function buildReport(p){
 function unlock(){busy=false;var b=$('#send');b.disabled=false;b.textContent='Send report';}
 function resetForm(){
   $('#remarks').value='';$('#reporter').value='';
-  $('#pcSerial').value='';$('#monitorSerial').value='';
   $$('input[name=cat]').forEach(function(r){r.checked=false;});
 }
 
@@ -111,15 +108,16 @@ $('#form').addEventListener('submit',function(e){
   if(remarks.length<5){show(m,'err','Describe the problem in the remarks box.');return;}
   if(!to.length){show(m,'err','Select at least one recipient.');return;}
   var labName=$('#reportLab').value,pcId=$('#pc').value,now=new Date();
+  var s=spec(pcId);
   var p={
     lab:labName,
     pc_id:pcId,
-    pcSerial:$('#pcSerial').value.trim(),
-    monitorSerial:$('#monitorSerial').value.trim(),
+    pcSerial:s.pcSerial||'Not given',
+    monitorSerial:s.monitorSerial||'Not given',
     category:cat.value,
     reporter:$('#reporter').value.trim(),
     remarks:remarks,
-    specs:spec(pcId),
+    specs:s,
     timestamp:now.toLocaleString()+' ('+Intl.DateTimeFormat().resolvedOptions().timeZone+')',
     recipients:to
   };
