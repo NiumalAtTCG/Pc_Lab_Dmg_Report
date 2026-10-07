@@ -4,7 +4,7 @@ var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'
 var KEY='labpc.v1';
 var LAB_KEY='pc_lab_config';
 var LAB_VER_KEY='pc_lab_ver';
-var LAB_VER=3; /* bump this whenever default labs/catalog change */
+var LAB_VER=4; /* bump this whenever default labs/catalog change */
 
 var IDS=[];
 
@@ -59,7 +59,24 @@ var DEF={emails:[
   mode:'webhook',hook:{type:'apps',url:'https://script.google.com/macros/s/AKfycbzVsn_2XFkeA8sqF80A1nAUu37UlKUsKk7xKpMnPTR1dg1LTZCZXS-RZOeEdslJvlGBjw/exec'},base:'https://pclabreport.vercel.app/',specs:{}};
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
-function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s==='object'){var d=clone(DEF);for(var k in s)d[k]=s[k];return d}}catch(e){}return clone(DEF)}
+function load(){
+  try{
+    var s=JSON.parse(localStorage.getItem(KEY));
+    if(s&&typeof s==='object'){
+      var d=clone(DEF);
+      if(s.emails&&Array.isArray(s.emails))d.emails=s.emails;
+      if(s.mode)d.mode=s.mode;
+      if(s.hook&&typeof s.hook==='object'){
+        d.hook.type=s.hook.type||DEF.hook.type;
+        d.hook.url=s.hook.url||DEF.hook.url;
+      }
+      if(s.base)d.base=s.base;
+      if(s.specs&&typeof s.specs==='object')d.specs=s.specs;
+      return d;
+    }
+  }catch(e){}
+  return clone(DEF);
+}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 var S=load();
 

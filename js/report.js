@@ -125,9 +125,11 @@ $('#form').addEventListener('submit',function(e){
   p.message=buildReport(p);
   busy=true;var b=$('#send');b.disabled=true;b.textContent='Sending...';hide(m);
   if(S.mode==='webhook'){
-    if(!S.hook.url){show(m,'err','Webhook URL is missing. Ask an admin to add it under Catalog & settings.');unlock();return;}
+    var hookUrl=(S.hook&&S.hook.url)||'';
+    var hookType=(S.hook&&S.hook.type)||'apps';
+    if(!hookUrl){show(m,'err','Webhook URL is missing. Go to Catalog & settings and save a webhook URL.');unlock();return;}
     var body,headers={'Accept':'application/json'};
-    if(S.hook.type==='apps'){
+    if(hookType==='apps'){
       body=JSON.stringify(p);
       headers['Content-Type']='text/plain;charset=utf-8';
     }else{
@@ -140,11 +142,11 @@ $('#form').addEventListener('submit',function(e){
       });
       headers['Content-Type']='application/json';
     }
-    var opt=S.hook.type==='apps'
+    var opt=hookType==='apps'
       ?{method:'POST',mode:'no-cors',headers:headers,body:body}
       :{method:'POST',headers:headers,body:body};
-    fetch(S.hook.url,opt).then(function(r){
-      if(S.hook.type!=='apps'&&!r.ok)throw new Error('HTTP '+r.status);
+    fetch(hookUrl,opt).then(function(r){
+      if(hookType!=='apps'&&!r.ok)throw new Error('HTTP '+r.status);
       show(m,'ok','Report sent to '+to.length+' recipient'+(to.length>1?'s':'')+'.');resetForm();setTimeout(unlock,4000);
     }).catch(function(err){show(m,'err','Could not send the report. '+(err&&err.message?err.message:'Check your connection and try again.'));unlock();});
   }else{
