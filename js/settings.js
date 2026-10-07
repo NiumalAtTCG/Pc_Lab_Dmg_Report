@@ -1,12 +1,55 @@
-/* Admin: specs */
+/* Lab management */
+function renderLabList(){
+  var labs=loadLabs();
+  $('#labList').innerHTML=labs.length?labs.map(function(l,i){
+    return '<div class="row" style="align-items:center;margin-bottom:8px">'+
+      '<input type="text" data-li="'+i+'" data-lk="name" value="'+esc(l.name)+'" aria-label="Lab name" style="flex:2">'+
+      '<input type="number" data-li="'+i+'" data-lk="count" value="'+l.count+'" min="1" max="200" aria-label="PC count" style="flex:1">'+
+      '<button type="button" class="btn alt" data-ldel="'+i+'">Delete</button>'+
+    '</div>';
+  }).join(''):'<p class="small">No labs yet. Add one above.</p>';
+}
+$('#labList').addEventListener('input',function(e){
+  var t=e.target,i=t.dataset.li,k=t.dataset.lk;
+  if(i==null||!k)return;
+  var labs=loadLabs();
+  labs[+i][k]=k==='count'?Math.max(1,parseInt(t.value)||1):t.value;
+  saveLabs(labs);syncAllLabDropdowns();
+});
+$('#labList').addEventListener('click',function(e){
+  var d=e.target.dataset.ldel;
+  if(d==null)return;
+  var labs=loadLabs();labs.splice(+d,1);saveLabs(labs);renderLabList();syncAllLabDropdowns();
+  show($('#labmsg'),'ok','Lab deleted.');
+});
+$('#addLab').addEventListener('click',function(){
+  var name=$('#newLabName').value.trim(),count=parseInt($('#newLabCount').value)||10;
+  if(!name){show($('#labmsg'),'err','Enter a lab name.');return;}
+  var labs=loadLabs();
+  if(labs.some(function(l){return l.name.toLowerCase()===name.toLowerCase();})){show($('#labmsg'),'err','A lab with that name already exists.');return;}
+  labs.push({name:name,count:count});saveLabs(labs);
+  $('#newLabName').value='';$('#newLabCount').value='';
+  renderLabList();syncAllLabDropdowns();show($('#labmsg'),'ok','Lab "'+name+'" added.');
+});
+
+function syncAllLabDropdowns(){
+  populateReportLabs();populateReportPCs();
+  populateAdminLabs();
+  populateQRLabs();qrDirty=true;
+}
 function renderAdminSpec(){
-  var s=spec($('#apc').value);
-  $('#afields').innerHTML=FIELDS.map(function(f){return '<div><label for="f_'+f[0]+'">'+f[1]+'</label><input type="text" id="f_'+f[0]+'" value="'+esc(s[f[0]])+'"></div>'}).join('');
+  var id=$('#apc').value;
+  var s=spec(id);
+  $('#afields').innerHTML=FIELDS.map(function(f){return '<div><label for="f_'+f[0]+'">'+f[1]+'</label><input type="text" id="f_'+f[0]+'" value="'+esc(s[f[0]])+'"></div>';}).join('');
 }
 $('#apc').addEventListener('change',renderAdminSpec);
 $('#saveSpec').addEventListener('click',function(){
   var id=$('#apc').value,o={};
-  FIELDS.forEach(function(f){var v=$('#f_'+f[0]).value.trim();if(v&&v!==CATALOG[id][f[0]])o[f[0]]=v});
+  FIELDS.forEach(function(f){
+    var v=$('#f_'+f[0]).value.trim();
+    var base=CATALOG[id]?CATALOG[id][f[0]]:undefined;
+    if(v&&v!==base)o[f[0]]=v;
+  });
   if(Object.keys(o).length)S.specs[id]=o;else delete S.specs[id];
   var ok=save();show($('#amsg'),ok?'ok':'err',ok?id+' saved.':'Could not save in this browser.');renderSpecs();
 });
@@ -58,4 +101,4 @@ $('#saveSet').addEventListener('click',function(){
 });
 
 /* Init */
-resetSel();renderRecips();renderSpecs();renderAdminSpec();loadSettings();refreshAuthUI();
+resetSel();renderRecips();renderSpecs();renderAdminSpec();loadSettings();refreshAuthUI();renderLabList();

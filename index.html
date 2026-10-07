@@ -9,15 +9,18 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden">
-  <div style="position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,168,190,0.18) 0%,transparent 70%);top:-120px;left:-100px;animation:blob1 18s ease-in-out infinite"></div>
-  <div style="position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,104,116,0.13) 0%,transparent 70%);bottom:-100px;right:-80px;animation:blob2 22s ease-in-out infinite"></div>
-</div>
-<style>
-@keyframes blob1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.08)}}
-@keyframes blob2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,-40px) scale(1.06)}}
-</style>
-<header><h1>Lab PC Damage Reporter</h1><p>Scan the sticker on the PC, describe the problem, send. Nothing is stored.</p></header>
+<div class="bg-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+<header>
+  <div class="header-inner">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.06 15.96 0 13.36 0c-1.4 0-2.72.6-3.64 1.64L8 4 6.28 1.64C5.36.6 4.04 0 2.64 0 1.04 0 0 1.04 0 2.64c0 .48.11.92.18 1.36H0v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8l2-2h-2zm-6-4c.88 0 1.64.76 1.64 1.64 0 .48-.2.92-.52 1.24L13 7l-2.12-2.12C10.56 4.56 10.36 4.12 10.36 3.64 10.36 2.76 11.12 2 12 2h2zm-8 0c.88 0 1.64.76 1.64 1.64 0 .48-.2.92-.52 1.24L5 7 2.88 4.88C2.56 4.56 2.36 4.12 2.36 3.64 2.36 2.76 3.12 2 4 2h2zM18 20H2V8h16v12z"/></svg>
+    </div>
+    <div class="header-text">
+      <h1>Lab PC Damage Reporter</h1>
+      <p>Scan the sticker on the PC, describe the problem, send.</p>
+    </div>
+  </div>
+</header>
 <nav role="tablist">
 <button class="on" data-tab="report" role="tab">Report damage</button>
 <button data-tab="qr" role="tab">QR stickers</button>
@@ -30,11 +33,16 @@
 <form id="form" class="card" autocomplete="off" novalidate>
 <h2>Incident report</h2>
 <div id="idwarn" class="msg err"></div>
+<label for="reportLab">Lab</label>
+<select id="reportLab"></select>
 <label for="pc">PC</label>
 <select id="pc"></select>
 <div class="lbl">Hardware (from catalog)</div>
 <dl class="specs" id="specs"></dl>
-
+<div class="grid2">
+<div><label for="pcSerial">PC Serial Number</label><input type="text" id="pcSerial" placeholder="Enter PC serial number"></div>
+<div><label for="monitorSerial">Monitor Serial Number</label><input type="text" id="monitorSerial" placeholder="Enter Monitor serial number"></div>
+</div>
 <div class="lbl">What kind of damage?</div>
 <div class="chips" id="cats"></div>
 
@@ -77,14 +85,28 @@
 <div class="card noprint">
 <h2>Sticker sheet</h2>
 <p class="small">Each QR code holds only <code id="qrurl"></code>-style links. Specs are looked up when scanned, so stickers never need reprinting after a hardware change. If this site moves, set the site address under Catalog &amp; settings and reprint.</p>
-<button class="btn" id="print" type="button">Print stickers</button>
+<div class="row" style="margin-top:12px;align-items:center">
+<div><label for="qrLab" style="margin:0 0 4px">Lab</label><select id="qrLab"></select></div>
+<button class="btn" id="print" type="button" style="align-self:flex-end">Print stickers</button>
+</div>
 </div>
 <div id="sheet"></div>
 </section>
 
 <section id="admin" class="pane">
 <div class="card">
+<h2>Lab &amp; PC Management</h2>
+<div class="row" style="align-items:flex-end;gap:10px">
+<div style="flex:2"><label for="newLabName">Lab Name</label><input type="text" id="newLabName" placeholder="e.g. Lab 1"></div>
+<div style="flex:1"><label for="newLabCount">PC Count</label><input type="number" id="newLabCount" min="1" max="200" placeholder="10"></div>
+<button class="btn" id="addLab" type="button" style="flex:none;align-self:flex-end">Add Lab</button>
+</div>
+<div id="labList" style="margin-top:14px"></div>
+<div id="labmsg" class="msg" role="status"></div>
+</div>
+<div class="card">
 <h2>Edit PC specs</h2>
+<label for="alab">Lab</label><select id="alab"></select>
 <label for="apc">PC</label><select id="apc"></select>
 <div class="grid2" id="afields"></div>
 <div class="row" style="margin-top:14px;justify-content:flex-start">

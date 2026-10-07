@@ -2,12 +2,19 @@
 var $=function(s){return document.querySelector(s)},$$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var KEY='labpc.v1',N=40;
+var LAB_KEY='pc_lab_config';
 var ADMIN_HASH='';
 var SALT='labpc-admin-v1:';
 
 var IDS=[];for(var i=1;i<=N;i++)IDS.push('PC-LAB-'+(i<10?'0':'')+i);
+
+/* Dynamic lab config */
+function loadLabs(){try{var d=JSON.parse(localStorage.getItem(LAB_KEY));if(Array.isArray(d))return d;}catch(e){}return [{name:'Lab 1',count:10},{name:'Lab 2',count:10}];}
+function saveLabs(labs){try{localStorage.setItem(LAB_KEY,JSON.stringify(labs));return true;}catch(e){return false;}}
+function getPCsForLab(lab){var pcs=[];for(var i=1;i<=lab.count;i++)pcs.push(lab.name+' - PC-'+(i<10?'0':'')+i);return pcs;}
+function getAllLabPCs(){var all=[];loadLabs().forEach(function(l){getPCsForLab(l).forEach(function(pc){all.push({lab:l.name,pc:pc});});});return all;}
 var CATS=['Display','Peripheral','Power','Hardware','OS/Software','Network'];
-var FIELDS=[['model','Model'],['cpu','CPU'],['ram','RAM'],['storage','Storage'],['gpu','GPU'],['os','Operating system']];
+var FIELDS=[['model','Model'],['cpu','CPU'],['ram','RAM'],['storage','Storage'],['gpu','GPU'],['os','Operating system'],['pcSerial','PC Serial Number'],['monitorSerial','Monitor Serial Number']];
 
 var CATALOG={};
 IDS.forEach(function(id,k){
@@ -34,7 +41,8 @@ function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s==
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 var S=load();
 
-function spec(id){var o={},b=CATALOG[id]||{},v=S.specs[id]||{};for(var k in b)o[k]=v[k]!=null&&v[k]!==''?v[k]:b[k];return o}
+var SERIAL_FIELDS=['pcSerial','monitorSerial'];
+function spec(id){var o={},b=CATALOG[id]||{},v=S.specs[id]||{};for(var k in b)o[k]=v[k]!=null&&v[k]!==''?v[k]:b[k];SERIAL_FIELDS.forEach(function(k){o[k]=v[k]!=null&&v[k]!==''?v[k]:'';});return o}
 function baseUrl(){return (S.base||location.origin+location.pathname).split('#')[0].split('?')[0]}
 function show(el,type,text){el.className='msg '+type;el.textContent=text}
 function hide(el){el.className='msg';el.textContent=''}
