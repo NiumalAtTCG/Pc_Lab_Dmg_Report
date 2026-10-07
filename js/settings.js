@@ -40,7 +40,7 @@ function syncAllLabDropdowns(){
 function renderAdminSpec(){
   var id=$('#apc').value;
   var s=spec(id);
-  $('#afields').innerHTML=FIELDS.map(function(f){return '<div><label for="f_'+f[0]+'">'+f[1]+'</label><input type="text" id="f_'+f[0]+'" value="'+esc(s[f[0]])+'"></div>';}).join('');
+  $('#afields').innerHTML=FIELDS.map(function(f){return '<div><label for="f_'+f[0]+'">'+f[1]+'</label><input type="text" id="f_'+f[0]+'" value="'+esc(s[f[0]]||'')+'"></div>';}).join('');
 }
 $('#apc').addEventListener('change',renderAdminSpec);
 $('#saveSpec').addEventListener('click',function(){
@@ -54,23 +54,9 @@ $('#saveSpec').addEventListener('click',function(){
   var ok=save();show($('#amsg'),ok?'ok':'err',ok?id+' saved.':'Could not save in this browser.');renderSpecs();
 });
 $('#resetSpec').addEventListener('click',function(){var id=$('#apc').value;delete S.specs[id];save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok',id+' reset to defaults.')});
-$('#resetAll').addEventListener('click',function(){if(!confirm('Reset all 40 PCs to the built-in specs?'))return;S.specs={};save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok','All PCs reset to defaults.')});
+$('#resetAll').addEventListener('click',function(){if(!confirm('Reset all PCs to the built-in specs?'))return;S.specs={};save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok','All PCs reset to defaults.')});
 
-/* Admin: password */
-$('#chgPw').addEventListener('click',function(){
-  var m=$('#pmsg'),a=$('#npw').value;
-  if(!canHash()){show(m,'err','Changing the password needs an https:// page.');return}
-  if(a.length<8){show(m,'err','Use at least 8 characters.');return}
-  if(a!==$('#npw2').value){show(m,'err','The two passwords do not match.');return}
-  sha(a).then(function(h){S.pw=h;if(!save()){show(m,'err','Could not save the password in this browser.');return}$('#npw').value='';$('#npw2').value='';refreshAuthUI();show(m,'ok','Password changed.')});
-});
-$('#copyHash').addEventListener('click',function(){
-  var el=$('#hashOut');el.select();
-  try{navigator.clipboard.writeText(el.value)}catch(e){document.execCommand('copy')}
-  show($('#pmsg'),'ok','Hash copied.');
-});
-
-/* Admin: recipients + sending settings */
+/* Recipients + sending settings */
 var rows=[];
 function renderRows(){
   $('#rlist').innerHTML=rows.map(function(r,i){return '<div class="row" style="align-items:center;margin-bottom:6px"><input type="checkbox" data-i="'+i+'" data-k="on" style="flex:none;width:20px;height:20px"'+(r.on?' checked':'')+' aria-label="Pre-select"><input type="email" data-i="'+i+'" data-k="a" value="'+esc(r.a)+'" aria-label="Email"><button type="button" class="btn alt" data-del="'+i+'">Remove</button></div>'}).join('');
@@ -101,4 +87,4 @@ $('#saveSet').addEventListener('click',function(){
 });
 
 /* Init */
-resetSel();renderRecips();renderSpecs();renderAdminSpec();loadSettings();refreshAuthUI();renderLabList();
+resetSel();renderRecips();renderSpecs();renderAdminSpec();loadSettings();renderLabList();

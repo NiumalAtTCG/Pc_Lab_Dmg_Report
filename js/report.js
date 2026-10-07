@@ -4,7 +4,7 @@ var qpc=(params.get('pc')||'').trim();
 /* legacy ?id= support */
 var qid=(params.get('id')||'').trim().toUpperCase();
 
-var sel,extra=[],busy=false;
+var extra=[],busy=false;
 
 /* ── Lab/PC dropdown helpers ── */
 function populateReportLabs(){
@@ -74,21 +74,33 @@ function renderSpecs(){
 $('#pc').addEventListener('change',renderSpecs);
 $('#cats').innerHTML=CATS.map(function(c){return '<label class="chip"><input type="radio" name="cat" value="'+esc(c)+'"><span>'+esc(c)+'</span></label>';}).join('');
 
-function resetSel(){sel=new Set(S.emails.filter(function(e){return e.on;}).map(function(e){return e.a;}));extra=[];}
+function resetSel(){extra=[];}
 function allRecips(){var l=S.emails.map(function(e){return e.a;});extra.forEach(function(a){if(l.indexOf(a)<0)l.push(a);});return l;}
+function checkedRecips(){return $$('#recips input[type=checkbox]:checked').map(function(el){return el.dataset.a;});}
+function updateCount(){$('#count').textContent=checkedRecips().length+' selected';}
 function renderRecips(){
   var l=allRecips();
-  $('#recips').innerHTML=l.map(function(a){return '<label class="rec"><input type="checkbox" data-a="'+esc(a)+'"'+(sel.has(a)?' checked':'')+'> <span>'+esc(a)+'</span></label>';}).join('')||'<p class="small">No recipients yet. Add one below.</p>';
-  $('#count').textContent=sel.size+' selected';
+  var preOn=new Set(S.emails.filter(function(e){return e.on;}).map(function(e){return e.a;}));
+  $('#recips').innerHTML=l.map(function(a){return '<label class="rec"><input type="checkbox" data-a="'+esc(a)+'"'+(preOn.has(a)?' checked':'')+'> <span>'+esc(a)+'</span></label>';}).join('')||'<p class="small">No recipients yet. Add one below.</p>';
+  updateCount();
 }
-$('#recips').addEventListener('change',function(e){var a=e.target.dataset.a;if(a==null)return;e.target.checked?sel.add(a):sel['delete'](a);$('#count').textContent=sel.size+' selected';});
+$('#recips').addEventListener('change',updateCount);
 
 function addCustom(){
-  var el=$('#custom'),v=el.value.trim().toLowerCase(),m=$('#msg');
+  var el=$('#custom'),v=el.value.trim(),m=$('#msg');
   if(!v)return;
   if(!EMAIL.test(v)){show(m,'err','Enter a valid email address, like name@example.com.');return;}
-  hide(m);if(allRecips().map(function(x){return x.toLowerCase();}).indexOf(v)<0)extra.push(v);
-  var exact=allRecips().filter(function(x){return x.toLowerCase()===v;})[0];sel.add(exact);el.value='';renderRecips();
+  hide(m);
+  var vl=v.toLowerCase();
+  /* preserve existing checked state before re-render */
+  var wasChecked=checkedRecips();
+  if(allRecips().map(function(x){return x.toLowerCase();}).indexOf(vl)<0)extra.push(v);
+  el.value='';renderRecips();
+  /* re-check previously checked + the new one */
+  $$('#recips input[type=checkbox]').forEach(function(cb){
+    if(wasChecked.indexOf(cb.dataset.a)>-1||cb.dataset.a.toLowerCase()===vl)cb.checked=true;
+  });
+  updateCount();
 }
 $('#addCustom').addEventListener('click',addCustom);
 $('#custom').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addCustom();}});
@@ -113,7 +125,7 @@ $('#form').addEventListener('submit',function(e){
   if(busy)return;
   var m=$('#msg');
   if($('#website').value){busy=true;$('#send').disabled=true;show(m,'ok','Report sent.');return;} /* honeypot */
-  var cat=$('input[name=cat]:checked'),remarks=$('#remarks').value.trim(),to=allRecips().filter(function(a){return sel.has(a);});
+  var cat=$('input[name=cat]:checked'),remarks=$('#remarks').value.trim(),to=checkedRecips();
   if(!cat){show(m,'err','Choose a damage category.');return;}
   if(remarks.length<5){show(m,'err','Describe the problem in the remarks box.');return;}
   if(!to.length){show(m,'err','Select at least one recipient.');return;}

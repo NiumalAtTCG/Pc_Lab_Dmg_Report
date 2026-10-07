@@ -1,107 +1,77 @@
 'use strict';
 var $=function(s){return document.querySelector(s)},$$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
-var KEY='labpc.v1',N=40;
+var KEY='labpc.v1';
 var LAB_KEY='pc_lab_config';
-var ADMIN_HASH='';
-var SALT='labpc-admin-v1:';
+var LAB_VER_KEY='pc_lab_ver';
+var LAB_VER=2; /* bump this whenever default labs/catalog change */
 
-var IDS=[];for(var i=1;i<=N;i++)IDS.push('PC-LAB-'+(i<10?'0':'')+i);
+var IDS=[];
 
 /* Dynamic lab config */
-function loadLabs(){try{var d=JSON.parse(localStorage.getItem(LAB_KEY));if(Array.isArray(d))return d;}catch(e){}return [{name:'Lab 1',count:10},{name:'Lab 2',count:10}];}
+var DEFAULT_LABS=[{name:'Lab A',count:6},{name:'Lab B',count:6},{name:'Lab C',count:4}];
+function loadLabs(){
+  /* If stored version is outdated, wipe and reseed with current defaults */
+  var ver=parseInt(localStorage.getItem(LAB_VER_KEY))||0;
+  if(ver<LAB_VER){localStorage.removeItem(LAB_KEY);localStorage.removeItem(KEY);localStorage.setItem(LAB_VER_KEY,LAB_VER);}
+  try{var d=JSON.parse(localStorage.getItem(LAB_KEY));if(Array.isArray(d)&&d.length)return d;}catch(e){}
+  return DEFAULT_LABS;
+}
 function saveLabs(labs){try{localStorage.setItem(LAB_KEY,JSON.stringify(labs));return true;}catch(e){return false;}}
 function getPCsForLab(lab){var pcs=[];for(var i=1;i<=lab.count;i++)pcs.push(lab.name+' - PC-'+(i<10?'0':'')+i);return pcs;}
 function getAllLabPCs(){var all=[];loadLabs().forEach(function(l){getPCsForLab(l).forEach(function(pc){all.push({lab:l.name,pc:pc});});});return all;}
+
 var CATS=['Display','Peripheral','Power','Hardware','OS/Software','Network'];
 var FIELDS=[['model','Model'],['cpu','CPU'],['ram','RAM'],['storage','Storage'],['gpu','GPU'],['os','Operating system'],['pcSerial','PC Serial Number'],['monitorSerial','Monitor Serial Number']];
 
-var CATALOG={};
-IDS.forEach(function(id,k){
-  var n=k+1,hi=n%3===0,dell=n%2===1;
-  CATALOG[id]={
-    model:dell?(hi?'Dell OptiPlex 7090 Tower':'Dell OptiPlex 3090 SFF'):(hi?'HP ProDesk 600 G6 Tower':'HP ProDesk 400 G7 SFF'),
-    cpu:hi?'Intel Core i7-12700':'Intel Core i5-12500',
-    ram:hi?'32 GB DDR4':'16 GB DDR4',
-    storage:hi?'1 TB NVMe SSD':'512 GB SATA SSD',
-    gpu:hi?'NVIDIA GeForce GTX 1660 Super 6 GB':'Intel UHD Graphics 770',
-    os:'Windows 11 Pro'
-  };
-});
+/* ── Dummy catalog data ── */
+var CATALOG={
+  /* ── Lab A ── */
+  'Lab A - PC-01':{model:'Dell OptiPlex 7090 Tower',    cpu:'Intel Core i7-10700',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'DLLA7090-001', monitorSerial:'DLLU2422H-001'},
+  'Lab A - PC-02':{model:'Dell OptiPlex 7090 Tower',    cpu:'Intel Core i7-10700',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'DLLA7090-002', monitorSerial:'DLLU2422H-002'},
+  'Lab A - PC-03':{model:'Dell OptiPlex 3090 SFF',      cpu:'Intel Core i5-10500T',  ram:'8 GB DDR4',  storage:'256 GB SATA SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 10 Pro', pcSerial:'DLLA3090-003', monitorSerial:'DLLS2422H-003'},
+  'Lab A - PC-04':{model:'Dell OptiPlex 3090 SFF',      cpu:'Intel Core i5-10500T',  ram:'8 GB DDR4',  storage:'256 GB SATA SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 10 Pro', pcSerial:'DLLA3090-004', monitorSerial:'DLLS2422H-004'},
+  'Lab A - PC-05':{model:'HP ProDesk 600 G6 MT',        cpu:'Intel Core i5-10500',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'HPAPD600-005', monitorSerial:'HPP24H-005'},
+  'Lab A - PC-06':{model:'HP ProDesk 600 G6 MT',        cpu:'Intel Core i5-10500',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'HPAPD600-006', monitorSerial:'HPP24H-006'},
+
+  /* ── Lab B ── */
+  'Lab B - PC-01':{model:'Dell OptiPlex 5090 Tower',    cpu:'Intel Core i5-10505',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'NVIDIA GeForce GT 730 2 GB',      os:'Windows 11 Pro', pcSerial:'DLLB5090-001', monitorSerial:'DLLU2422H-101'},
+  'Lab B - PC-02':{model:'Dell OptiPlex 5090 Tower',    cpu:'Intel Core i5-10505',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'NVIDIA GeForce GT 730 2 GB',      os:'Windows 11 Pro', pcSerial:'DLLB5090-002', monitorSerial:'DLLU2422H-102'},
+  'Lab B - PC-03':{model:'Dell OptiPlex 5090 Tower',    cpu:'Intel Core i5-10505',   ram:'32 GB DDR4', storage:'1 TB NVMe SSD',   gpu:'NVIDIA GeForce GTX 1650 4 GB',   os:'Windows 11 Pro', pcSerial:'DLLB5090-003', monitorSerial:'DLLU2422H-103'},
+  'Lab B - PC-04':{model:'HP EliteDesk 800 G6 Tower',   cpu:'Intel Core i7-10700',   ram:'32 GB DDR4', storage:'1 TB NVMe SSD',   gpu:'NVIDIA GeForce GTX 1650 4 GB',   os:'Windows 11 Pro', pcSerial:'HPBED800-004', monitorSerial:'HPE24H-104'},
+  'Lab B - PC-05':{model:'HP EliteDesk 800 G6 Tower',   cpu:'Intel Core i7-10700',   ram:'32 GB DDR4', storage:'1 TB NVMe SSD',   gpu:'NVIDIA GeForce GTX 1650 4 GB',   os:'Windows 11 Pro', pcSerial:'HPBED800-005', monitorSerial:'HPE24H-105'},
+  'Lab B - PC-06':{model:'HP EliteDesk 800 G6 Tower',   cpu:'Intel Core i7-10700',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'HPBED800-006', monitorSerial:'HPE24H-106'},
+
+  /* ── Lab C ── */
+  'Lab C - PC-01':{model:'Lenovo ThinkCentre M90t',     cpu:'Intel Core i7-10700',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'LNVM90T-001',  monitorSerial:'LNVT24H-201'},
+  'Lab C - PC-02':{model:'Lenovo ThinkCentre M90t',     cpu:'Intel Core i7-10700',   ram:'16 GB DDR4', storage:'512 GB NVMe SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 11 Pro', pcSerial:'LNVM90T-002',  monitorSerial:'LNVT24H-202'},
+  'Lab C - PC-03':{model:'Lenovo ThinkCentre M70s SFF', cpu:'Intel Core i5-10400',   ram:'8 GB DDR4',  storage:'256 GB SATA SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 10 Pro', pcSerial:'LNVM70S-003',  monitorSerial:'LNVT22H-203'},
+  'Lab C - PC-04':{model:'Lenovo ThinkCentre M70s SFF', cpu:'Intel Core i5-10400',   ram:'8 GB DDR4',  storage:'256 GB SATA SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 10 Pro', pcSerial:'LNVM70S-004',  monitorSerial:'LNVT22H-204'},
+};
 
 var DEF={emails:[
   {a:'hirushasilva69@gmail.com',on:true},
   {a:'hirushasilva64@gmail.com',on:true},
   {a:'it.support@lab.example',on:false},
   {a:'it.technician@lab.example',on:false}],
-  mode:'webhook',hook:{type:'apps',url:'https://script.google.com/macros/s/AKfycbzVsn_2XFkeA8sqF80A1nAUu37UlKUsKk7xKpMnPTR1dg1LTZCZXS-RZOeEdslJvlGBjw/exec'},base:'https://pclabreport.vercel.app/',specs:{},pw:''};
+  mode:'webhook',hook:{type:'apps',url:'https://script.google.com/macros/s/AKfycbzVsn_2XFkeA8sqF80A1nAUu37UlKUsKk7xKpMnPTR1dg1LTZCZXS-RZOeEdslJvlGBjw/exec'},base:'https://pclabreport.vercel.app/',specs:{}};
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s==='object'){var d=clone(DEF);for(var k in s)d[k]=s[k];d.mode=DEF.mode;d.hook=clone(DEF.hook);d.base=DEF.base;return d}}catch(e){}return clone(DEF)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 var S=load();
 
-var SERIAL_FIELDS=['pcSerial','monitorSerial'];
-function spec(id){var o={},b=CATALOG[id]||{},v=S.specs[id]||{};for(var k in b)o[k]=v[k]!=null&&v[k]!==''?v[k]:b[k];SERIAL_FIELDS.forEach(function(k){o[k]=v[k]!=null&&v[k]!==''?v[k]:'';});return o}
+function spec(id){var o={},b=CATALOG[id]||{},v=S.specs[id]||{};FIELDS.forEach(function(f){var k=f[0];o[k]=v[k]!=null&&v[k]!==''?v[k]:(b[k]!=null?b[k]:'');});return o}
 function baseUrl(){return (S.base||location.origin+location.pathname).split('#')[0].split('?')[0]}
 function show(el,type,text){el.className='msg '+type;el.textContent=text}
 function hide(el){el.className='msg';el.textContent=''}
 var EMAIL=/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
-/* Auth */
-var AUTH={qr:1,admin:1},pending='qr',unlocked=false,fails=0,until=0,idleT;
-function storedHash(){return ADMIN_HASH||S.pw||''}
-function sha(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(SALT+t)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2)}).join('')})}
-function canHash(){return !!(window.crypto&&crypto.subtle)}
-function armIdle(){clearTimeout(idleT);if(unlocked)idleT=setTimeout(lock,600000)}
-['click','keydown','touchstart'].forEach(function(t){document.addEventListener(t,armIdle,{passive:true})});
-
-function openGate(){
-  var setup=!storedHash();
-  $('#gateTitle').textContent=setup?'Create admin password':'Admin sign in';
-  $('#gateHint').textContent=setup?'No admin password is set yet. Choose one with at least 8 characters.':'Sign in to print QR stickers and edit PC details.';
-  $('#gconfWrap').hidden=!setup;
-  $('#gateBtn').textContent=setup?'Create password':'Sign in';
-  $('#gpw').autocomplete=setup?'new-password':'current-password';
-  $('#gpw').value='';$('#gpw2').value='';hide($('#gmsg'));
-  setTimeout(function(){$('#gpw').focus()},0);
-}
-function refreshAuthUI(){
-  $('#hashOut').value=storedHash();
-  $('#pwChangeWrap').hidden=!!ADMIN_HASH;
-  $('#hashNote').textContent=ADMIN_HASH?'This site uses a lab-wide password set in ADMIN_HASH. To change it, replace that value in the file and redeploy.':'By default the password is saved in this browser only. To use one password on every device, paste this hash into ADMIN_HASH near the top of the script and redeploy.';
-}
-function enter(){unlocked=true;$('#gpw').value='';$('#gpw2').value='';$('#logout').hidden=false;armIdle();refreshAuthUI();tab(pending)}
-function lock(){
-  unlocked=false;clearTimeout(idleT);$('#logout').hidden=true;
-  var cur=$$('.pane.on')[0];if(cur&&AUTH[cur.id])tab('report');
-}
-$('#logout').addEventListener('click',function(){lock();tab('report')});
-$('#gateForm').addEventListener('submit',function(e){
-  e.preventDefault();
-  var m=$('#gmsg'),pw=$('#gpw').value,setup=!storedHash();
-  if(!canHash()){show(m,'err','Sign-in needs a secure page. Open this site through its https:// address.');return}
-  var wait=Math.ceil((until-Date.now())/1000);
-  if(wait>0){show(m,'err','Too many attempts. Try again in '+wait+' seconds.');return}
-  if(setup){
-    if(pw.length<8){show(m,'err','Use at least 8 characters.');return}
-    if(pw!==$('#gpw2').value){show(m,'err','The two passwords do not match.');return}
-    sha(pw).then(function(h){S.pw=h;if(!save()){show(m,'err','Could not save the password in this browser.');return}enter()});
-    return;
-  }
-  sha(pw).then(function(h){
-    if(h===storedHash()){fails=0;enter()}
-    else{fails++;if(fails>=5)until=Date.now()+30000*(fails-4);show(m,'err','Wrong password.');$('#gpw').select()}
-  });
-});
-
 /* Tabs */
 var qrDirty=true;
 function tab(name){
-  var shown=name;
-  if(AUTH[name]&&!unlocked){pending=name;shown='gate';openGate()}
   $$('nav button[data-tab]').forEach(function(b){b.classList.toggle('on',b.dataset.tab===name)});
-  $$('.pane').forEach(function(p){p.classList.toggle('on',p.id===shown)});
-  if(shown==='qr'&&qrDirty)renderQR();
+  $$('.pane').forEach(function(p){p.classList.toggle('on',p.id===name)});
+  if(name==='qr'&&qrDirty)renderQR();
 }
 $$('nav button[data-tab]').forEach(function(b){b.addEventListener('click',function(){tab(b.dataset.tab)})});

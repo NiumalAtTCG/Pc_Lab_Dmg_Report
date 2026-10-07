@@ -25,7 +25,6 @@
 <button class="on" data-tab="report" role="tab">Report damage</button>
 <button data-tab="qr" role="tab">QR stickers</button>
 <button data-tab="admin" role="tab">Catalog &amp; settings</button>
-<button class="btn alt" id="logout" type="button" hidden>Lock admin</button>
 </nav>
 <main>
 
@@ -66,21 +65,6 @@
 </form>
 </section>
 
-<section id="gate" class="pane">
-<form id="gateForm" class="card" style="max-width:420px;margin:24px auto" autocomplete="off">
-<h2 id="gateTitle">Admin sign in</h2>
-<p class="small" id="gateHint"></p>
-<label for="gpw">Password</label>
-<input type="password" id="gpw" autocomplete="current-password">
-<div id="gconfWrap" hidden>
-<label for="gpw2">Confirm password</label>
-<input type="password" id="gpw2" autocomplete="new-password">
-</div>
-<button class="btn full" id="gateBtn" type="submit">Sign in</button>
-<div id="gmsg" class="msg" role="alert"></div>
-</form>
-</section>
-
 <section id="qr" class="pane">
 <div class="card noprint">
 <h2>Sticker sheet</h2>
@@ -96,7 +80,15 @@
 <section id="admin" class="pane">
 <div class="card">
 <h2>Lab &amp; PC Management</h2>
-<div class="row" style="align-items:flex-end;gap:10px">
+<p class="small hint-block">
+  <strong>How labs and PCs work:</strong> Each lab has a name and a PC count.
+  PCs are numbered automatically — e.g. a lab named <em>Lab 1</em> with count <em>10</em>
+  generates <em>Lab 1 – PC-01</em> through <em>Lab 1 – PC-10</em>.
+  QR sticker dimensions are fixed at <strong>160 × 160 px on screen</strong> and
+  <strong>~38 × 38 mm when printed on A4</strong> (5 columns, 10 mm margins).
+  Keep lab names short so they fit the sticker header.
+</p>
+<div class="row" style="align-items:flex-end;gap:10px;margin-top:14px">
 <div style="flex:2"><label for="newLabName">Lab Name</label><input type="text" id="newLabName" placeholder="e.g. Lab 1"></div>
 <div style="flex:1"><label for="newLabCount">PC Count</label><input type="number" id="newLabCount" min="1" max="200" placeholder="10"></div>
 <button class="btn" id="addLab" type="button" style="flex:none;align-self:flex-end">Add Lab</button>
@@ -104,8 +96,15 @@
 <div id="labList" style="margin-top:14px"></div>
 <div id="labmsg" class="msg" role="status"></div>
 </div>
+
 <div class="card">
 <h2>Edit PC specs</h2>
+<p class="small hint-block">
+  Select a lab and PC, then fill in the hardware details and serial numbers.
+  Leave a field blank to keep the built-in catalog default.
+  Changes are saved in <strong>this browser only</strong> — to push them to all devices,
+  edit the <code>CATALOG</code> object in <code>core.js</code> and redeploy.
+</p>
 <label for="alab">Lab</label><select id="alab"></select>
 <label for="apc">PC</label><select id="apc"></select>
 <div class="grid2" id="afields"></div>
@@ -115,14 +114,13 @@
 <button class="btn alt" id="resetAll" type="button">Reset all PCs</button>
 </div>
 <div id="amsg" class="msg" role="status"></div>
-<p class="small">Edits are saved in this browser only. To change specs for everyone, edit the catalog in this file and redeploy.</p>
 </div>
 
 <div class="card">
 <h2>Recipients</h2>
 <div id="rlist"></div>
 <button class="btn alt" id="addRow" type="button">Add recipient</button>
-<p class="small">Ticked recipients are pre-selected on the report form.</p>
+<p class="small" style="margin-top:10px">Ticked recipients are pre-selected on the report form.</p>
 </div>
 
 <div class="card">
@@ -139,23 +137,12 @@
 </div>
 <label for="base">Site address for QR codes (optional)</label>
 <input type="url" id="base" placeholder="Leave empty to use this page's address">
+<p class="small hint-block" style="margin-top:10px">
+  The site address is embedded in every QR code. If you move the site to a new URL,
+  update this field and reprint the stickers. Example: <code>https://pclabreport.vercel.app/</code>
+</p>
 <button class="btn full" id="saveSet" type="button">Save settings</button>
 <div id="smsg" class="msg" role="status"></div>
-</div>
-
-<div class="card">
-<h2>Admin password</h2>
-<div id="pwChangeWrap">
-<label for="npw">New password</label>
-<input type="password" id="npw" autocomplete="new-password">
-<label for="npw2">Confirm new password</label>
-<input type="password" id="npw2" autocomplete="new-password">
-<button class="btn" id="chgPw" type="button" style="margin-top:12px">Change password</button>
-</div>
-<div id="pmsg" class="msg" role="status"></div>
-<label for="hashOut">Lab-wide password hash</label>
-<div class="row"><input type="text" id="hashOut" readonly><button type="button" class="btn alt" id="copyHash">Copy</button></div>
-<p class="small" id="hashNote">By default the password is saved in this browser only. To use one password on every device, paste this hash into <code>ADMIN_HASH</code> near the top of the script and redeploy.</p>
 </div>
 </section>
 </main>
