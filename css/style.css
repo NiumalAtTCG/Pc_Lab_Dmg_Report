@@ -711,6 +711,22 @@ button.btn:disabled.is-loading {
   main { padding: 16px 14px; }
   .card { padding: 18px; border-radius: var(--r-lg); }
   .grid2 { grid-template-columns: 1fr; }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2);
+  }
+  .chips .chip {
+    display: block;
+    min-width: 0;
+  }
+  .chips .chip span {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
   .row { flex-wrap: wrap; }
   #sheet { grid-template-columns: repeat(2,1fr); gap: 10px; }
   .qr-code-wrapper { width: 90px !important; height: 90px !important; }
