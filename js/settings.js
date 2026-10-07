@@ -9,18 +9,35 @@ function renderLabList(){
     '</div>';
   }).join(''):'<p class="small">No labs yet. Add one above.</p>';
 }
-$('#labList').addEventListener('input',function(e){
-  var t=e.target,i=t.dataset.li,k=t.dataset.lk;
-  if(i==null||!k)return;
-  var labs=loadLabs();
-  labs[+i][k]=k==='count'?Math.max(1,parseInt(t.value)||1):t.value;
-  saveLabs(labs);syncAllLabDropdowns();
-});
 $('#labList').addEventListener('click',function(e){
   var d=e.target.dataset.ldel;
   if(d==null)return;
   var labs=loadLabs();labs.splice(+d,1);saveLabs(labs);renderLabList();syncAllLabDropdowns();
   show($('#labmsg'),'ok','Lab deleted.');
+});
+$('#saveLabs').addEventListener('click',function(){
+  var m=$('#labmsg');
+  var inputs=$$('#labList input[data-li]');
+  if(!inputs.length){show(m,'err','No labs to save.');return;}
+  var labs=loadLabs();
+  var names=[];
+  var valid=true;
+  inputs.forEach(function(t){
+    var i=+t.dataset.li,k=t.dataset.lk;
+    if(k==='name'){
+      var n=t.value.trim();
+      if(!n){show(m,'err','Lab name cannot be empty.');valid=false;return;}
+      if(names.indexOf(n.toLowerCase())>-1){show(m,'err','Duplicate lab name: "'+n+'".');valid=false;return;}
+      names.push(n.toLowerCase());
+      labs[i].name=n;
+    }else if(k==='count'){
+      labs[i].count=Math.max(1,parseInt(t.value)||1);
+    }
+  });
+  if(!valid)return;
+  var ok=saveLabs(labs);
+  if(!ok){show(m,'err','Could not save in this browser.');return;}
+  renderLabList();syncAllLabDropdowns();show(m,'ok','Labs saved.');
 });
 $('#addLab').addEventListener('click',function(){
   var name=$('#newLabName').value.trim(),count=parseInt($('#newLabCount').value)||10;
@@ -51,10 +68,21 @@ $('#saveSpec').addEventListener('click',function(){
     if(v&&v!==base)o[f[0]]=v;
   });
   if(Object.keys(o).length)S.specs[id]=o;else delete S.specs[id];
-  var ok=save();show($('#amsg'),ok?'ok':'err',ok?id+' saved.':'Could not save in this browser.');renderSpecs();
+  var ok=save();
+  show($('#amsg'),ok?'ok':'err',ok?id+' saved.':'Could not save in this browser.');
+  if($('#pc').value===id)renderSpecs();
 });
-$('#resetSpec').addEventListener('click',function(){var id=$('#apc').value;delete S.specs[id];save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok',id+' reset to defaults.')});
-$('#resetAll').addEventListener('click',function(){if(!confirm('Reset all PCs to the built-in specs?'))return;S.specs={};save();renderAdminSpec();renderSpecs();show($('#amsg'),'ok','All PCs reset to defaults.')});
+$('#resetSpec').addEventListener('click',function(){
+  var id=$('#apc').value;
+  delete S.specs[id];save();renderAdminSpec();
+  if($('#pc').value===id)renderSpecs();
+  show($('#amsg'),'ok',id+' reset to defaults.');
+});
+$('#resetAll').addEventListener('click',function(){
+  if(!confirm('Reset all PCs to the built-in specs?'))return;
+  S.specs={};save();renderAdminSpec();renderSpecs();
+  show($('#amsg'),'ok','All PCs reset to defaults.');
+});
 
 /* ── Recipients ── */
 var rows=[];
@@ -91,7 +119,7 @@ $('#addRow').addEventListener('click',function(){
 });
 
 function syncHook(){$('#hookbox').style.display=document.querySelector('input[name=mode]:checked').value==='webhook'?'block':'none'}
-$$('input[name=mode]').forEach(function(r){r.addEventListener('change',syncHook)});
+$$('input[name=mode]').forEach(function(r){r.addEventListener('change',syncHook);});
 
 function loadSettings(){
   rows=S.emails.map(function(e){return{a:e.a,on:e.on}});renderRows();
@@ -101,11 +129,11 @@ function loadSettings(){
 $('#saveSet').addEventListener('click',function(){
   var m=$('#smsg');
   var mode=document.querySelector('input[name=mode]:checked').value,url=$('#hurl').value.trim(),base=$('#base').value.trim();
-  if(mode==='webhook'&&!/^https:\/\//i.test(url)){show(m,'err','Enter a webhook URL that starts with https://');return}
-  if(base&&!/^https?:\/\//i.test(base)){show(m,'err','The site address must start with https://');return}
+  if(mode==='webhook'&&!/^https:\/\//i.test(url)){show(m,'err','Enter a webhook URL that starts with https://');return;}
+  if(base&&!/^https?:\/\//i.test(base)){show(m,'err','The site address must start with https://');return;}
   var baseChanged=base!==S.base;
   S.mode=mode;S.hook={type:$('#htype').value,url:url};S.base=base.replace(/\/+$/,base.indexOf('?')>-1?'':'/');
-  if(!save()){show(m,'err','Could not save in this browser.');return}
+  if(!save()){show(m,'err','Could not save in this browser.');return;}
   if(baseChanged)qrDirty=true;
   loadSettings();show(m,'ok','Settings saved.');
 });
