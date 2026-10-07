@@ -496,10 +496,8 @@ dl.specs dd {
   word-break: break-all;
   border-bottom: 1px solid var(--c-outline-var);
   font-size: var(--ts-sm);
-  transition: background var(--dur-fast) var(--ease);
 }
 .rec:last-child { border-bottom: none; }
-.rec:hover { background: var(--c-surface-1); border-radius: var(--r-sm); padding-left: 6px; }
 .rec input[type=checkbox] {
   width: 20px; height: 20px;
   flex-shrink: 0;
