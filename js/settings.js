@@ -70,12 +70,12 @@ $('#saveSpec').addEventListener('click',function(){
   if(Object.keys(o).length)S.specs[id]=o;else delete S.specs[id];
   var ok=save();
   show($('#amsg'),ok?'ok':'err',ok?id+' saved.':'Could not save in this browser.');
-  if($('#pc').value===id)renderSpecs();
+  if($('#pc-selector').value===id)renderSpecs();
 });
 $('#resetSpec').addEventListener('click',function(){
   var id=$('#apc').value;
   delete S.specs[id];save();renderAdminSpec();
-  if($('#pc').value===id)renderSpecs();
+  if($('#pc-selector').value===id)renderSpecs();
   show($('#amsg'),'ok',id+' reset to defaults.');
 });
 $('#resetAll').addEventListener('click',function(){
@@ -123,7 +123,9 @@ $$('input[name=mode]').forEach(function(r){r.addEventListener('change',syncHook)
 
 function loadSettings(){
   rows=S.emails.map(function(e){return{a:e.a,on:e.on}});renderRows();
-  document.querySelector('input[name=mode][value='+S.mode+']').checked=true;
+  var modeEl=document.querySelector('input[name=mode][value="'+S.mode+'"]');
+  if(modeEl)modeEl.checked=true;
+  else{var fallback=document.querySelector('input[name=mode][value="mailto"]');if(fallback)fallback.checked=true;}
   $('#htype').value=S.hook.type;$('#hurl').value=S.hook.url;$('#base').value=S.base;syncHook();
 }
 $('#saveSet').addEventListener('click',function(){
@@ -139,4 +141,6 @@ $('#saveSet').addEventListener('click',function(){
 });
 
 /* Init */
-resetSel();renderRecips();renderSpecs();renderAdminSpec();loadSettings();renderLabList();
+if(typeof resetSel==='function')resetSel();
+if(typeof renderRecips==='function')renderRecips();
+renderSpecs();renderAdminSpec();loadSettings();renderLabList();

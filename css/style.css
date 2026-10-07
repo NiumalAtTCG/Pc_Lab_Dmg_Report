@@ -539,6 +539,10 @@ button.btn:disabled {
   transform: none !important;
   box-shadow: none !important;
 }
+button.btn:disabled.is-loading {
+  opacity: .80;
+  cursor: wait;
+}
 .full { width: 100%; margin-top: var(--sp-5); }
 
 /* ═══════════════════════════════════════════

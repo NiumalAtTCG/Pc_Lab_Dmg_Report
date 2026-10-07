@@ -35,26 +35,26 @@
 <div id="idwarn" class="msg err"></div>
 <label for="reportLab">Lab</label>
 <select id="reportLab"></select>
-<label for="pc">PC</label>
-<select id="pc"></select>
+<label for="pc-selector">PC</label>
+<select id="pc-selector"></select>
 <div class="lbl">Hardware (from catalog)</div>
 <dl class="specs" id="specs"></dl>
 <div class="lbl">What kind of damage?</div>
 <div class="chips" id="cats"></div>
 
-<label for="remarks">Remarks</label>
-<textarea id="remarks" maxlength="1500" placeholder="What happened? What does the screen or PC do?"></textarea>
+<label for="remarks-input">Remarks</label>
+<textarea id="remarks-input" maxlength="1500" placeholder="What happened? What does the screen or PC do?"></textarea>
 
-<label for="reporter">Your name or ID (optional)</label>
-<input type="text" id="reporter" maxlength="80">
+<label for="reporter-name">Your name or ID (optional)</label>
+<input type="text" id="reporter-name" maxlength="80">
 
 <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
 
 <div class="lbl">Send to <span class="badge" id="count">0 selected</span></div>
 <div id="recips"></div>
 
-<button class="btn full" id="send" type="submit">Send report</button>
-<div id="msg" class="msg" role="status"></div>
+<button class="btn full" id="submit-report-btn" type="button">Send report</button>
+<div id="toast-message" class="msg" role="status" aria-live="polite"></div>
 </form>
 </section>
 
