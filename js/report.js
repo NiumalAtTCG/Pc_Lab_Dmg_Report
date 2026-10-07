@@ -97,10 +97,59 @@ function populateAdminPCs() {
 
 function resetSel() {}
 
+function coerceSpecValue(val) {
+  if (val == null) return '';
+  if (typeof val === 'object') {
+    try { return JSON.stringify(val); } catch (e) { return ''; }
+  }
+  return String(val).trim();
+}
+
+/** Flatten catalog specs to plain strings so GAS never receives nested objects as "[object Object]". */
+function serializeSpecFields(raw) {
+  var src = raw;
+  if (typeof src === 'string') {
+    try { src = JSON.parse(src); } catch (e) { src = {}; }
+  }
+  if (!src || typeof src !== 'object' || Array.isArray(src)) src = {};
+  var out = {};
+  FIELDS.forEach(function (f) {
+    var v = coerceSpecValue(src[f[0]]);
+    out[f[0]] = v === '' ? '—' : v;
+  });
+  return out;
+}
+
+function serializeWebhookPayload(p) {
+  var specs = serializeSpecFields(p.specs);
+  var pcSerial = coerceSpecValue(p.pcSerial) || (specs.pcSerial !== '—' ? specs.pcSerial : '');
+  var monitorSerial = coerceSpecValue(p.monitorSerial) || (specs.monitorSerial !== '—' ? specs.monitorSerial : '');
+  if (!pcSerial) pcSerial = 'Not given';
+  if (!monitorSerial) monitorSerial = 'Not given';
+  if (specs.pcSerial === '—' && pcSerial !== 'Not given') specs.pcSerial = pcSerial;
+  if (specs.monitorSerial === '—' && monitorSerial !== 'Not given') specs.monitorSerial = monitorSerial;
+
+  return {
+    lab: p.lab,
+    pc_id: p.pc_id,
+    pcSerial: pcSerial,
+    monitorSerial: monitorSerial,
+    category: p.category,
+    reporter: p.reporter || '',
+    remarks: p.remarks,
+    timestamp: p.timestamp,
+    recipients: p.recipients,
+    subject: p.subject,
+    message: p.message,
+    specs: specs,
+    hardware: specs
+  };
+}
+
 function buildReport(p) {
-  var s = p.specs;
+  var s = serializeSpecFields(p.specs);
   return '# Lab PC Damage Report\n\n' +
-    '**Lab:** ' + p.lab + '\n**PC:** ' + p.pc_id + '\n**PC Serial:** ' + (p.pcSerial || 'Not given') + '\n**Monitor Serial:** ' + (p.monitorSerial || 'Not given') + '\n' +
+    '**Lab:** ' + p.lab + '\n**PC:** ' + p.pc_id + '\n**PC Serial:** ' + (p.pcSerial || s.pcSerial || 'Not given') + '\n**Monitor Serial:** ' + (p.monitorSerial || s.monitorSerial || 'Not given') + '\n' +
     '**Category:** ' + p.category + '\n**Reported:** ' + p.timestamp + '\n**Reporter:** ' + (p.reporter || 'Not given') + '\n\n' +
     '## Hardware\n' + FIELDS.map(function (f) { return '- ' + f[1] + ': ' + (s[f[0]] || '—'); }).join('\n') + '\n\n' +
     '## Remarks\n' + p.remarks + '\n';
@@ -165,7 +214,7 @@ function directWebhookFetch(hookUrl, hookType, p) {
   }
 
   if (hookType === 'apps') {
-    var appsBody = JSON.stringify(p);
+    var appsBody = JSON.stringify(serializeWebhookPayload(p));
     var appsHeaders = { 'Content-Type': 'text/plain;charset=utf-8', Accept: 'application/json' };
     return fetch(hookUrl, { method: 'POST', headers: appsHeaders, body: appsBody }).then(function (r) {
       if (r.type === 'opaque') return;
@@ -190,7 +239,11 @@ function sendViaApiProxy(hookUrl, hookType, p) {
   return fetch('/api/send-report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ webhookUrl: hookUrl, hookType: hookType, report: p })
+    body: JSON.stringify({
+      webhookUrl: hookUrl,
+      hookType: hookType,
+      report: hookType === 'apps' ? serializeWebhookPayload(p) : p
+    })
   }).then(function (r) {
     return r.json().catch(function () { return {}; }).then(function (data) {
       if (isProxyUnavailableStatus(r.status)) throw new Error('API_SKIP');

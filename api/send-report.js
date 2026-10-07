@@ -13,6 +13,44 @@ function isAllowedWebhookUrl(url) {
   }
 }
 
+var SPEC_KEYS = ['model', 'cpu', 'ram', 'storage', 'gpu', 'os', 'pcSerial', 'monitorSerial'];
+
+function coerceSpecString(val) {
+  if (val == null) return '';
+  if (typeof val === 'object') {
+    try { return JSON.stringify(val); } catch (e) { return ''; }
+  }
+  return String(val).trim();
+}
+
+/** Ensure nested specs/hardware are plain strings before POSTing to Google Apps Script. */
+function normalizeReportForApps(report) {
+  var source = report.specs;
+  if (source == null && report.hardware != null) source = report.hardware;
+  if (typeof source === 'string') {
+    try { source = JSON.parse(source); } catch (e) { source = {}; }
+  }
+  if (!source || typeof source !== 'object' || Array.isArray(source)) source = {};
+
+  var specs = {};
+  SPEC_KEYS.forEach(function (key) {
+    var v = coerceSpecString(source[key]);
+    specs[key] = v === '' ? '—' : v;
+  });
+
+  report.specs = specs;
+  report.hardware = specs;
+  if (report.pcSerial != null && coerceSpecString(report.pcSerial) !== '') {
+    report.pcSerial = coerceSpecString(report.pcSerial);
+    if (specs.pcSerial === '—') specs.pcSerial = report.pcSerial;
+  }
+  if (report.monitorSerial != null && coerceSpecString(report.monitorSerial) !== '') {
+    report.monitorSerial = coerceSpecString(report.monitorSerial);
+    if (specs.monitorSerial === '—') specs.monitorSerial = report.monitorSerial;
+  }
+  return report;
+}
+
 function buildFormspreeBody(p) {
   return {
     email: p.recipients[0],
@@ -59,7 +97,7 @@ module.exports = async function handler(req, res) {
 
   var payload, headers;
   if (hookType === 'apps') {
-    payload = JSON.stringify(report);
+    payload = JSON.stringify(normalizeReportForApps(Object.assign({}, report)));
     headers = { 'Content-Type': 'text/plain;charset=utf-8', Accept: 'application/json' };
   } else {
     payload = JSON.stringify(buildFormspreeBody(report));
