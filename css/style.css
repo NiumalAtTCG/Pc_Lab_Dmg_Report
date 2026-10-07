@@ -706,42 +706,11 @@ button.btn:disabled.is-loading {
   .header-icon { width: 44px; height: 44px; }
   .header-icon svg { width: 22px; height: 22px; }
   .header-text h1 { font-size: var(--ts-lg); }
-  nav {
-    width: 100%;
-    max-width: none;
-    margin-top: 18px;
-    padding: 0;
-    gap: 0;
-    overflow-x: visible;
-  }
-  nav button {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 10px 6px 9px;
-    font-size: var(--ts-xs);
-    text-align: center;
-    white-space: normal;
-    line-height: 1.25;
-  }
+  nav { padding: 0 14px; }
+  nav button { padding: 10px 13px 9px; font-size: var(--ts-xs); }
   main { padding: 16px 14px; }
   .card { padding: 18px; border-radius: var(--r-lg); }
   .grid2 { grid-template-columns: 1fr; }
-  .chips {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--sp-2);
-  }
-  .chips .chip {
-    display: block;
-    min-width: 0;
-  }
-  .chips .chip span {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
   .row { flex-wrap: wrap; }
   #sheet { grid-template-columns: repeat(2,1fr); gap: 10px; }
   .qr-code-wrapper { width: 90px !important; height: 90px !important; }
