@@ -198,7 +198,9 @@ function sendViaApiProxy(hookUrl, hookType, p) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      report: reportPayloadForProxy(p)
+      report: reportPayloadForProxy(p),
+      hookUrl: hookUrl,
+      hookType: hookType
     })
   }).then(function (r) {
     return r.json().catch(function () { return {}; }).then(function (data) {

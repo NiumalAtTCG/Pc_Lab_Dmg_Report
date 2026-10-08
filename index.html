@@ -134,6 +134,12 @@
 <select id="htype"><option value="formspree">Formspree</option><option value="apps">Google Apps Script</option></select>
 <label for="hurl">Webhook URL</label>
 <input type="url" id="hurl" placeholder="https://formspree.io/f/xxxx or https://script.google.com/macros/s/.../exec">
+<p class="small hint-block" style="margin-top:10px">
+  For <strong>Google Apps Script</strong> on Vercel: set project env <code>GAS_SECRET</code> (Vercel dashboard)
+  to the same value as Script property <code>SECRET</code> in Apps Script. The URL above is sent to the server
+  when <code>WEBHOOK_URL</code> is not set on Vercel; you can also put the <code>/exec</code> URL in
+  <code>WEBHOOK_URL</code> there instead.
+</p>
 </div>
 <label for="base">Site address for QR codes (optional)</label>
 <input type="url" id="base" placeholder="Leave empty to use this page's address">

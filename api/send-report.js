@@ -13,6 +13,21 @@ var CATEGORIES = ['Display', 'Peripheral', 'Power', 'Hardware', 'OS/Software', '
 var SPEC_KEYS = ['model', 'cpu', 'ram', 'storage', 'gpu', 'os', 'pcSerial', 'monitorSerial'];
 var ID_RE = /^[A-Za-z0-9 ._\-]{1,60}$/;
 var EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+var GAS_EXEC_RE = /^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+var FORMSPREE_RE = /^\/f\/[A-Za-z0-9]+$/;
+
+/** HTTPS webhook targets we allow from the client when WEBHOOK_URL is not set on the server. */
+function allowedHookUrl(raw) {
+  var u = str(raw, 500);
+  if (!u) return '';
+  try {
+    var parsed = new URL(u);
+    if (parsed.protocol !== 'https:') return '';
+    if (parsed.hostname === 'script.google.com' && GAS_EXEC_RE.test(parsed.pathname)) return parsed.href;
+    if (parsed.hostname === 'formspree.io' && FORMSPREE_RE.test(parsed.pathname)) return parsed.href;
+  } catch (e) { /* ignore */ }
+  return '';
+}
 
 function str(v, max) {
   if (v == null) return '';
@@ -58,19 +73,22 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  var hookUrl = process.env.WEBHOOK_URL || '';
+  var body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) { body = null; }
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
+
+  var hookUrl = process.env.WEBHOOK_URL || allowedHookUrl(body.hookUrl);
   var secret = process.env.GAS_SECRET || '';
-  var hookType = process.env.HOOK_TYPE === 'formspree' ? 'formspree' : 'apps';
+  var hookType = process.env.HOOK_TYPE === 'formspree' ? 'formspree'
+    : (body.hookType === 'formspree' ? 'formspree' : 'apps');
   if (!hookUrl || (hookType === 'apps' && !secret)) {
     res.status(500).json({ ok: false, error: 'Server is not configured (WEBHOOK_URL / GAS_SECRET).' });
     return;
   }
 
-  var body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch (e) { body = null; }
-  }
-  var report = sanitizeReport(body && body.report);
+  var report = sanitizeReport(body.report);
   if (!report) {
     res.status(400).json({ ok: false, error: 'Invalid report.' });
     return;
