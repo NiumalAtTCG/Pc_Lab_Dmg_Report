@@ -1,116 +1,100 @@
-/** Vercel serverless proxy — avoids browser CORS limits on Google Apps Script / Formspree. */
+/**
+ * Vercel serverless proxy for damage reports.
+ *
+ * Environment variables (Vercel → Project → Settings → Environment Variables):
+ *   WEBHOOK_URL   Apps Script /exec URL (or Formspree URL). Required. Never taken from the request.
+ *   GAS_SECRET    Shared secret, must equal the SECRET Script Property in the Apps Script.
+ *   HOOK_TYPE     "apps" (default) or "formspree".
+ *
+ * The browser calls this endpoint from the same origin, so no CORS headers are set.
+ */
 
-function isAllowedWebhookUrl(url) {
-  try {
-    var u = new URL(url);
-    if (u.protocol !== 'https:') return false;
-    var h = u.hostname;
-    if (h === 'script.google.com' || h === 'formspree.io') return true;
-    if (h.endsWith('.formspree.io')) return true;
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
-
+var CATEGORIES = ['Display', 'Peripheral', 'Power', 'Hardware', 'OS/Software', 'Network'];
 var SPEC_KEYS = ['model', 'cpu', 'ram', 'storage', 'gpu', 'os', 'pcSerial', 'monitorSerial'];
+var ID_RE = /^[A-Za-z0-9 ._\-]{1,60}$/;
+var EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
-function coerceSpecString(val) {
-  if (val == null) return '';
-  if (typeof val === 'object') {
-    try { return JSON.stringify(val); } catch (e) { return ''; }
-  }
-  return String(val).trim();
+function str(v, max) {
+  if (v == null) return '';
+  if (typeof v === 'object') return '';
+  return String(v).trim().slice(0, max);
 }
 
-/** Ensure nested specs/hardware are plain strings before POSTing to Google Apps Script. */
-function normalizeReportForApps(report) {
-  var source = report.specs;
-  if (source == null && report.hardware != null) source = report.hardware;
-  if (typeof source === 'string') {
-    try { source = JSON.parse(source); } catch (e) { source = {}; }
-  }
-  if (!source || typeof source !== 'object' || Array.isArray(source)) source = {};
+/** Returns a clean report object, or null if the payload is not acceptable. */
+function sanitizeReport(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  var lab = str(r.lab, 60), pc = str(r.pc_id, 60), cat = str(r.category, 40);
+  var remarks = str(r.remarks, 1500);
+  if (!ID_RE.test(lab) || !ID_RE.test(pc)) return null;
+  if (CATEGORIES.indexOf(cat) < 0) return null;
+  if (remarks.length < 5) return null;
+  if (!Array.isArray(r.recipients)) return null;
+  var recipients = r.recipients.map(function (a) { return str(a, 254); })
+    .filter(function (a) { return EMAIL_RE.test(a); }).slice(0, 10);
+  if (!recipients.length) return null;
 
+  var src = (r.specs && typeof r.specs === 'object' && !Array.isArray(r.specs)) ? r.specs : {};
   var specs = {};
-  SPEC_KEYS.forEach(function (key) {
-    var v = coerceSpecString(source[key]);
-    specs[key] = v === '' ? '—' : v;
-  });
+  SPEC_KEYS.forEach(function (k) { specs[k] = str(src[k], 100) || '—'; });
 
-  report.specs = specs;
-  report.hardware = specs;
-  SPEC_KEYS.forEach(function (key) {
-    report[key] = specs[key];
-  });
-  report.hardwareSheet = SPEC_KEYS.map(function (key) {
-    var labels = {
-      model: 'Model', cpu: 'CPU', ram: 'RAM', storage: 'Storage', gpu: 'GPU',
-      os: 'Operating system', pcSerial: 'PC Serial Number', monitorSerial: 'Monitor Serial Number'
-    };
-    return (labels[key] || key) + ' : ' + specs[key];
-  }).join('\n');
-  if (report.pcSerial != null && coerceSpecString(report.pcSerial) !== '') {
-    report.pcSerial = coerceSpecString(report.pcSerial);
-    if (specs.pcSerial === '—') specs.pcSerial = report.pcSerial;
-  }
-  if (report.monitorSerial != null && coerceSpecString(report.monitorSerial) !== '') {
-    report.monitorSerial = coerceSpecString(report.monitorSerial);
-    if (specs.monitorSerial === '—') specs.monitorSerial = report.monitorSerial;
-  }
-  return report;
-}
-
-function buildFormspreeBody(p) {
   return {
-    email: p.recipients[0],
-    subject: p.subject,
-    message: p.message,
-    lab: p.lab,
-    pc_id: p.pc_id,
-    pcSerial: p.pcSerial || 'Not given',
-    monitorSerial: p.monitorSerial || 'Not given',
-    category: p.category,
-    reporter: p.reporter || 'Not given',
-    timestamp: p.timestamp,
-    recipients: p.recipients.join(', ')
+    lab: lab,
+    pc_id: pc,
+    category: cat,
+    remarks: remarks,
+    reporter: str(r.reporter, 80),
+    timestamp: str(r.timestamp, 80),
+    recipients: recipients,
+    specs: specs,
+    pcSerial: specs.pcSerial,
+    monitorSerial: specs.monitorSerial
   };
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     res.status(405).json({ ok: false, error: 'Method not allowed' });
     return;
   }
 
-  var body = req.body || {};
-  var hookUrl = body.webhookUrl || process.env.WEBHOOK_URL || process.env.GAS_WEBHOOK_URL || '';
-  var hookType = body.hookType || 'apps';
-  var report = body.report;
-
-  if (!hookUrl || !isAllowedWebhookUrl(hookUrl)) {
-    res.status(400).json({ ok: false, error: 'Invalid or missing webhook URL.' });
+  var hookUrl = process.env.WEBHOOK_URL || '';
+  var secret = process.env.GAS_SECRET || '';
+  var hookType = process.env.HOOK_TYPE === 'formspree' ? 'formspree' : 'apps';
+  if (!hookUrl || (hookType === 'apps' && !secret)) {
+    res.status(500).json({ ok: false, error: 'Server is not configured (WEBHOOK_URL / GAS_SECRET).' });
     return;
   }
-  if (!report || typeof report !== 'object') {
-    res.status(400).json({ ok: false, error: 'Missing report payload.' });
+
+  var body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) { body = null; }
+  }
+  var report = sanitizeReport(body && body.report);
+  if (!report) {
+    res.status(400).json({ ok: false, error: 'Invalid report.' });
     return;
   }
 
   var payload, headers;
   if (hookType === 'apps') {
-    payload = JSON.stringify(normalizeReportForApps(Object.assign({}, report)));
+    report.secret = secret;
+    payload = JSON.stringify(report);
     headers = { 'Content-Type': 'text/plain;charset=utf-8', Accept: 'application/json' };
   } else {
-    payload = JSON.stringify(buildFormspreeBody(report));
+    payload = JSON.stringify({
+      email: report.recipients[0],
+      subject: '[URGENT DAMAGE REPORT] ' + report.pc_id + ' - ' + report.category,
+      message: report.remarks,
+      lab: report.lab,
+      pc_id: report.pc_id,
+      pcSerial: report.pcSerial,
+      monitorSerial: report.monitorSerial,
+      category: report.category,
+      reporter: report.reporter || 'Not given',
+      timestamp: report.timestamp,
+      recipients: report.recipients.join(', ')
+    });
     headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   }
 
@@ -118,14 +102,19 @@ module.exports = async function handler(req, res) {
     var upstream = await fetch(hookUrl, { method: 'POST', headers: headers, body: payload, redirect: 'follow' });
     var text = await upstream.text();
     if (!upstream.ok) {
-      res.status(502).json({
-        ok: false,
-        error: 'Webhook returned HTTP ' + upstream.status + (text ? ': ' + text.slice(0, 200) : '')
-      });
+      res.status(502).json({ ok: false, error: 'Webhook returned HTTP ' + upstream.status });
       return;
+    }
+    if (hookType === 'apps') {
+      var data;
+      try { data = JSON.parse(text); } catch (e) { data = null; }
+      if (!data || data.ok !== true) {
+        res.status(502).json({ ok: false, error: (data && data.error) || 'Unexpected response from Apps Script.' });
+        return;
+      }
     }
     res.status(200).json({ ok: true });
   } catch (err) {
-    res.status(502).json({ ok: false, error: err.message || 'Could not reach webhook.' });
+    res.status(502).json({ ok: false, error: 'Could not reach webhook.' });
   }
 };

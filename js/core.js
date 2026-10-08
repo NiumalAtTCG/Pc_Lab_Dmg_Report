@@ -52,9 +52,9 @@ var CATALOG={
   'Lab C - PC-04':{model:'Lenovo ThinkCentre M70s SFF', cpu:'Intel Core i5-10400',   ram:'8 GB DDR4',  storage:'256 GB SATA SSD', gpu:'Intel UHD Graphics 630',          os:'Windows 10 Pro', pcSerial:'LNVM70S-004',  monitorSerial:'LNVT22H-204'},
 };
 
+/* Default recipients are placeholders only. Add real addresses under Catalog & settings;
+   each must also appear in the Apps Script ALLOWED_RECIPIENTS script property. */
 var DEF={emails:[
-  {a:'hirushasilva69@gmail.com',on:true},
-  {a:'hirushasilva64@gmail.com',on:true},
   {a:'it.support@lab.example',on:false},
   {a:'it.technician@lab.example',on:false}],
   mode:'webhook',hook:{type:'apps',url:''},base:'https://pclabreport.vercel.app/',specs:{}};

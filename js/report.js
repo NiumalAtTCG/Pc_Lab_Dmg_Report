@@ -97,73 +97,31 @@ function populateAdminPCs() {
 
 function resetSel() {}
 
-function coerceSpecValue(val) {
-  if (val == null) return '';
-  if (typeof val === 'object') {
-    try { return JSON.stringify(val); } catch (e) { return ''; }
-  }
-  return String(val).trim();
-}
-
-/** Flatten catalog specs to plain strings so GAS never receives nested objects as "[object Object]". */
-function serializeSpecFields(raw) {
-  var src = raw;
-  if (typeof src === 'string') {
-    try { src = JSON.parse(src); } catch (e) { src = {}; }
-  }
-  if (!src || typeof src !== 'object' || Array.isArray(src)) src = {};
-  var out = {};
-  FIELDS.forEach(function (f) {
-    var v = coerceSpecValue(src[f[0]]);
-    out[f[0]] = v === '' ? '—' : v;
-  });
-  return out;
-}
-
-function buildHardwareSheet(specs) {
-  return FIELDS.map(function (f) {
-    return f[1] + ' : ' + (specs[f[0]] || '—');
-  }).join('\n');
-}
-
-function serializeWebhookPayload(p) {
-  var specs = serializeSpecFields(p.specs);
-  var pcSerial = coerceSpecValue(p.pcSerial) || (specs.pcSerial !== '—' ? specs.pcSerial : '');
-  var monitorSerial = coerceSpecValue(p.monitorSerial) || (specs.monitorSerial !== '—' ? specs.monitorSerial : '');
-  if (!pcSerial) pcSerial = 'Not given';
-  if (!monitorSerial) monitorSerial = 'Not given';
-  if (specs.pcSerial === '—' && pcSerial !== 'Not given') specs.pcSerial = pcSerial;
-  if (specs.monitorSerial === '—' && monitorSerial !== 'Not given') specs.monitorSerial = monitorSerial;
-
-  var payload = {
-    lab: p.lab,
-    pc_id: p.pc_id,
-    pcSerial: pcSerial,
-    monitorSerial: monitorSerial,
-    category: p.category,
-    reporter: p.reporter || '',
-    remarks: p.remarks,
-    timestamp: p.timestamp,
-    recipients: p.recipients,
-    subject: p.subject,
-    message: p.message,
-    specs: specs,
-    hardware: specs,
-    hardwareSheet: buildHardwareSheet(specs)
-  };
-  FIELDS.forEach(function (f) {
-    payload[f[0]] = specs[f[0]];
-  });
-  return payload;
+function specFieldDisplay(s, key) {
+  var v = s && s[key];
+  return v != null && String(v).trim() !== '' ? String(v).trim() : '\u2014';
 }
 
 function buildReport(p) {
-  var s = serializeSpecFields(p.specs);
+  var s = p.specs || {};
   return '# Lab PC Damage Report\n\n' +
-    '**Lab:** ' + p.lab + '\n**PC:** ' + p.pc_id + '\n**PC Serial:** ' + (p.pcSerial || s.pcSerial || 'Not given') + '\n**Monitor Serial:** ' + (p.monitorSerial || s.monitorSerial || 'Not given') + '\n' +
+    '**Lab:** ' + p.lab + '\n**PC:** ' + p.pc_id + '\n**PC Serial:** ' + specFieldDisplay(s, 'pcSerial') + '\n**Monitor Serial:** ' + specFieldDisplay(s, 'monitorSerial') + '\n' +
     '**Category:** ' + p.category + '\n**Reported:** ' + p.timestamp + '\n**Reporter:** ' + (p.reporter || 'Not given') + '\n\n' +
-    '## Hardware\n' + FIELDS.map(function (f) { return '- ' + f[1] + ': ' + (s[f[0]] || '—'); }).join('\n') + '\n\n' +
+    '## Hardware\n' + FIELDS.map(function (f) { return '- ' + f[1] + ': ' + specFieldDisplay(s, f[0]); }).join('\n') + '\n\n' +
     '## Remarks\n' + p.remarks + '\n';
+}
+
+function reportPayloadForProxy(p) {
+  return {
+    lab: p.lab,
+    pc_id: p.pc_id,
+    category: p.category,
+    remarks: p.remarks,
+    reporter: p.reporter || '',
+    timestamp: p.timestamp,
+    recipients: p.recipients,
+    specs: p.specs
+  };
 }
 
 function unlock() {
@@ -240,7 +198,7 @@ function sendViaApiProxy(hookUrl, hookType, p) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      report: serializeWebhookPayload(p)
+      report: reportPayloadForProxy(p)
     })
   }).then(function (r) {
     return r.json().catch(function () { return {}; }).then(function (data) {
