@@ -10,10 +10,11 @@ var IDS=[];
 
 /* Dynamic lab config */
 var DEFAULT_LABS=[{name:'Lab A',count:6},{name:'Lab B',count:6},{name:'Lab C',count:4}];
-/* Run once before load() — wipes stale data if version is outdated */
+/* Run once before load() — records the data version (never deletes saved data) */
 (function initVersion(){
   var ver=parseInt(localStorage.getItem(LAB_VER_KEY))||0;
-  if(ver<LAB_VER){localStorage.removeItem(LAB_KEY);localStorage.removeItem(KEY);localStorage.setItem(LAB_VER_KEY,LAB_VER);}
+  /* Only record the version. Saved labs, specs, emails and settings are user data and must survive deploys. */
+  if(ver<LAB_VER){try{localStorage.setItem(LAB_VER_KEY,LAB_VER);}catch(e){}}
 })();
 function loadLabs(){
   try{var d=JSON.parse(localStorage.getItem(LAB_KEY));if(Array.isArray(d)&&d.length)return d;}catch(e){}
@@ -56,7 +57,7 @@ var DEF={emails:[
   {a:'hirushasilva64@gmail.com',on:true},
   {a:'it.support@lab.example',on:false},
   {a:'it.technician@lab.example',on:false}],
-  mode:'webhook',hook:{type:'apps',url:'https://script.google.com/macros/s/AKfycbzVsn_2XFkeA8sqF80A1nAUu37UlKUsKk7xKpMnPTR1dg1LTZCZXS-RZOeEdslJvlGBjw/exec'},base:'https://pclabreport.vercel.app/',specs:{}};
+  mode:'webhook',hook:{type:'apps',url:''},base:'https://pclabreport.vercel.app/',specs:{}};
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function load(){

@@ -195,12 +195,9 @@ function buildFormspreeBody(p) {
   };
 }
 
-/** POST /api/send-report only exists on serverless hosts (e.g. Vercel). Static hosts return 405. */
+/** POST /api/send-report only exists on serverless hosts (e.g. Vercel). Static hosts answer 404/405 and we fall back. */
 function shouldUseApiProxy() {
-  if (location.protocol === 'file:' || !location.origin || location.origin === 'null') return false;
-  var h = location.hostname;
-  return /\.vercel\.app$/i.test(h) || h.endsWith('.vercel.sh') ||
-    h === 'localhost' || h === '127.0.0.1';
+  return location.protocol !== 'file:' && !!location.origin && location.origin !== 'null';
 }
 
 function isProxyUnavailableStatus(status) {
@@ -218,22 +215,14 @@ function webhookLooksLikeThisSite(hookUrl) {
 }
 
 function directWebhookFetch(hookUrl, hookType, p) {
+  if (!hookUrl || hookType === 'apps') {
+    /* Apps Script needs the server-side secret, which only the /api/send-report proxy holds. */
+    return Promise.reject(new Error('Send service unavailable on this host.'));
+  }
   if (webhookLooksLikeThisSite(hookUrl)) {
     return Promise.reject(new Error(
       'The webhook URL points at this site, which cannot accept POST. Use Formspree or Google Apps Script, or switch to mailto mode.'
     ));
-  }
-
-  if (hookType === 'apps') {
-    var appsBody = JSON.stringify(serializeWebhookPayload(p));
-    var appsHeaders = { 'Content-Type': 'text/plain;charset=utf-8', Accept: 'application/json' };
-    return fetch(hookUrl, { method: 'POST', headers: appsHeaders, body: appsBody }).then(function (r) {
-      if (r.type === 'opaque') return;
-      if (!r.ok) throw new Error('HTTP ' + r.status + (r.statusText ? ' ' + r.statusText : ''));
-    }).catch(function (err) {
-      if (err && err.message && err.message.indexOf('HTTP') === 0) throw err;
-      return fetch(hookUrl, { method: 'POST', mode: 'no-cors', headers: appsHeaders, body: appsBody });
-    });
   }
 
   var body = JSON.stringify(buildFormspreeBody(p));
@@ -251,9 +240,7 @@ function sendViaApiProxy(hookUrl, hookType, p) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      webhookUrl: hookUrl,
-      hookType: hookType,
-      report: hookType === 'apps' ? serializeWebhookPayload(p) : p
+      report: serializeWebhookPayload(p)
     })
   }).then(function (r) {
     return r.json().catch(function () { return {}; }).then(function (data) {
@@ -352,7 +339,7 @@ function handleSendReport() {
   if (S.mode === 'webhook') {
     var hookUrl = (S.hook && S.hook.url) || '';
     var hookType = (S.hook && S.hook.type) || 'apps';
-    if (!hookUrl) {
+    if (!hookUrl && !shouldUseApiProxy()) {
       show(m, 'err', 'Webhook URL is missing. Open Catalog & settings, choose “Send silently (webhook)”, and save a URL.');
       unlock();
       return;
@@ -365,7 +352,7 @@ function handleSendReport() {
       })
       .catch(function (err) {
         var detail = err && err.message ? err.message : 'Check your connection and webhook URL, then try again.';
-        var useMailtoFallback = /HTTP 405|HTTP 404|Failed to fetch|NetworkError|webhook URL points/i.test(detail);
+        var useMailtoFallback = /HTTP 405|HTTP 404|Failed to fetch|NetworkError|webhook URL points|Send service unavailable/i.test(detail);
         if (useMailtoFallback) {
           completeWithMailto(
             p,
@@ -417,15 +404,23 @@ function initReportTab() {
 
   if (qlab || qpc) {
     var labs = loadLabs();
-    if (qlab) {
-      var matchLab = labs.filter(function (l) { return l.name === qlab; })[0];
-      if (matchLab) {
-        if (labSel) labSel.value = qlab;
-        populateReportPCs();
-        if (qpc && pcEl()) pcEl().value = qpc;
-      } else {
-        show($('#idwarn'), 'err', 'Lab "' + qlab + '" is not configured. Pick the correct Lab below.');
+    var matchLab = qlab
+      ? labs.filter(function (l) { return l.name === qlab; })[0]
+      : labs.filter(function (l) { return getPCsForLab(l).indexOf(qpc) > -1; })[0];
+    if (matchLab) {
+      if (labSel) labSel.value = matchLab.name;
+      populateReportPCs();
+      if (qpc) {
+        if (getPCsForLab(matchLab).indexOf(qpc) > -1) {
+          if (pcEl()) pcEl().value = qpc;
+        } else {
+          show($('#idwarn'), 'err', 'PC "' + qpc + '" was not found in ' + matchLab.name + '. Pick the correct PC below.');
+        }
       }
+    } else if (qlab) {
+      show($('#idwarn'), 'err', 'Lab "' + qlab + '" is not configured. Pick the correct Lab below.');
+    } else {
+      show($('#idwarn'), 'err', 'PC "' + qpc + '" is not configured. Pick the correct Lab and PC below.');
     }
     renderSpecs();
     var f = $('#form');

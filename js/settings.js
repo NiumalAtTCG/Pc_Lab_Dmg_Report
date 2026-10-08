@@ -12,7 +12,13 @@ function renderLabList(){
 $('#labList').addEventListener('click',function(e){
   var d=e.target.dataset.ldel;
   if(d==null)return;
-  var labs=loadLabs();labs.splice(+d,1);saveLabs(labs);renderLabList();syncAllLabDropdowns();
+  var labs=loadLabs(),gone=labs[+d];
+  if(!gone)return;
+  if(!confirm('Delete "'+gone.name+'" and its PC spec edits? Printed QR stickers for this lab will stop working.'))return;
+  labs.splice(+d,1);saveLabs(labs);
+  Object.keys(S.specs).forEach(function(k){if(k.indexOf(gone.name+' - PC-')===0)delete S.specs[k];});
+  save();
+  renderLabList();syncAllLabDropdowns();renderAdminSpec();
   show($('#labmsg'),'ok','Lab deleted.');
 });
 $('#saveLabs').addEventListener('click',function(){
@@ -21,6 +27,7 @@ $('#saveLabs').addEventListener('click',function(){
   if(!inputs.length){show(m,'err','No labs to save.');return;}
   var labs=loadLabs();
   var names=[];
+  var renamed=[];
   var valid=true;
   inputs.forEach(function(t){
     var i=+t.dataset.li,k=t.dataset.lk;
@@ -29,6 +36,13 @@ $('#saveLabs').addEventListener('click',function(){
       if(!n){show(m,'err','Lab name cannot be empty.');valid=false;return;}
       if(names.indexOf(n.toLowerCase())>-1){show(m,'err','Duplicate lab name: "'+n+'".');valid=false;return;}
       names.push(n.toLowerCase());
+      var oldName=labs[i].name;
+      if(oldName!==n){
+        renamed.push(oldName);
+        Object.keys(S.specs).forEach(function(k){
+          if(k.indexOf(oldName+' - PC-')===0){S.specs[n+k.slice(oldName.length)]=S.specs[k];delete S.specs[k];}
+        });
+      }
       labs[i].name=n;
     }else if(k==='count'){
       labs[i].count=Math.max(1,parseInt(t.value)||1);
@@ -37,7 +51,9 @@ $('#saveLabs').addEventListener('click',function(){
   if(!valid)return;
   var ok=saveLabs(labs);
   if(!ok){show(m,'err','Could not save in this browser.');return;}
-  renderLabList();syncAllLabDropdowns();show(m,'ok','Labs saved.');
+  save();
+  renderLabList();syncAllLabDropdowns();renderAdminSpec();
+  show(m,'ok',renamed.length?'Labs saved. Renamed labs need their QR stickers reprinted.':'Labs saved.');
 });
 $('#addLab').addEventListener('click',function(){
   var name=$('#newLabName').value.trim(),count=parseInt($('#newLabCount').value)||10;
@@ -131,7 +147,7 @@ function loadSettings(){
 $('#saveSet').addEventListener('click',function(){
   var m=$('#smsg');
   var mode=document.querySelector('input[name=mode]:checked').value,url=$('#hurl').value.trim(),base=$('#base').value.trim();
-  if(mode==='webhook'&&!/^https:\/\//i.test(url)){show(m,'err','Enter a webhook URL that starts with https://');return;}
+  if(mode==='webhook'&&url&&!/^https:\/\//i.test(url)){show(m,'err','Enter a webhook URL that starts with https://');return;}
   if(base&&!/^https?:\/\//i.test(base)){show(m,'err','The site address must start with https://');return;}
   var baseChanged=base!==S.base;
   S.mode=mode;S.hook={type:$('#htype').value,url:url};S.base=base.replace(/\/+$/,base.indexOf('?')>-1?'':'/');

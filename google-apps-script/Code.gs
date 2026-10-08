@@ -18,16 +18,48 @@ var SPEC_LABELS = {
   monitorSerial: 'Monitor Serial Number'
 };
 
+var CATEGORIES = ['Display', 'Peripheral', 'Power', 'Hardware', 'OS/Software', 'Network'];
+var MAX_PER_MINUTE = 10;
+
+/**
+ * One-time setup: Project Settings → Script Properties, add:
+ *   SECRET              long random string (same value as GAS_SECRET on Vercel)
+ *   ALLOWED_RECIPIENTS  comma-separated list of addresses that may receive reports
+ * Requests without the right secret are rejected, and recipients outside the list are dropped.
+ */
 function doPost(e) {
   try {
+    var props = PropertiesService.getScriptProperties();
     var data = parsePostData_(e);
-    var recipients = normalizeRecipients_(data);
+
+    if (!secretOk_(data.secret, props.getProperty('SECRET'))) {
+      return jsonResponse_({ ok: false, error: 'Unauthorized.' });
+    }
+    delete data.secret;
+
+    var problem = validateReport_(data);
+    if (problem) return jsonResponse_({ ok: false, error: problem });
+
+    var allowed = parseList_(props.getProperty('ALLOWED_RECIPIENTS'));
+    if (!allowed.length) {
+      return jsonResponse_({ ok: false, error: 'Server has no ALLOWED_RECIPIENTS configured.' });
+    }
+    var recipients = normalizeRecipients_(data).filter(function (a) {
+      return allowed.indexOf(a.toLowerCase()) > -1;
+    });
     if (!recipients.length) {
-      return jsonResponse_({ ok: false, error: 'No recipients in payload.' });
+      return jsonResponse_({ ok: false, error: 'No allowed recipients in payload.' });
+    }
+
+    if (!rateOk_()) {
+      return jsonResponse_({ ok: false, error: 'Too many reports. Try again in a minute.' });
+    }
+    if (MailApp.getRemainingDailyQuota() < recipients.length) {
+      return jsonResponse_({ ok: false, error: 'Daily email quota reached.' });
     }
 
     var specs = normalizeSpecs_(data);
-    var subject = data.subject || buildSubject_(data);
+    var subject = buildSubject_(data); // never taken from the client
     var plainBody = buildPlainBody_(data, specs);
     var htmlBody = buildHtmlEmail_(data, specs);
 
@@ -43,6 +75,44 @@ function doPost(e) {
   } catch (err) {
     return jsonResponse_({ ok: false, error: err && err.message ? err.message : String(err) });
   }
+}
+
+function secretOk_(given, expected) {
+  if (!expected || typeof given !== 'string' || given.length !== expected.length) return false;
+  var diff = 0;
+  for (var i = 0; i < expected.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+}
+
+function parseList_(raw) {
+  return String(raw || '').split(/[,;\s]+/).map(function (s) {
+    return s.trim().toLowerCase();
+  }).filter(Boolean);
+}
+
+function validateReport_(data) {
+  var ID = /^[A-Za-z0-9 ._\-]{1,60}$/;
+  if (typeof data.lab !== 'string' || !ID.test(data.lab)) return 'Invalid lab.';
+  if (typeof data.pc_id !== 'string' || !ID.test(data.pc_id)) return 'Invalid PC id.';
+  if (CATEGORIES.indexOf(data.category) < 0) return 'Invalid category.';
+  if (typeof data.remarks !== 'string' || data.remarks.trim().length < 5 || data.remarks.length > 1500) {
+    return 'Remarks must be 5-1500 characters.';
+  }
+  if (data.reporter != null && (typeof data.reporter !== 'string' || data.reporter.length > 80)) {
+    return 'Invalid reporter.';
+  }
+  if (data.timestamp != null && (typeof data.timestamp !== 'string' || data.timestamp.length > 80)) {
+    return 'Invalid timestamp.';
+  }
+  return '';
+}
+
+function rateOk_() {
+  var cache = CacheService.getScriptCache();
+  var n = parseInt(cache.get('rate') || '0', 10);
+  if (n >= MAX_PER_MINUTE) return false;
+  cache.put('rate', String(n + 1), 60);
+  return true;
 }
 
 function parsePostData_(e) {
@@ -63,7 +133,13 @@ function normalizeRecipients_(data) {
     list = list.split(/[,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
   if (!Array.isArray(list)) return [];
-  return list.filter(function (a) { return a && String(a).indexOf('@') > 0; });
+  var seen = {};
+  return list.map(function (a) { return String(a).trim(); }).filter(function (a) {
+    var k = a.toLowerCase();
+    if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(a) || seen[k]) return false;
+    seen[k] = true;
+    return true;
+  }).slice(0, 10);
 }
 
 function normalizeSpecs_(data) {
@@ -115,7 +191,7 @@ function formatSpecValue_(val) {
   }
   var s = String(val).trim();
   if (s === '[object Object]') return '—';
-  return s === '' ? '—' : s;
+  return s === '' ? '—' : s.slice(0, 100);
 }
 
 function displayMeta_(val, fallback) {
@@ -134,12 +210,6 @@ function buildSubject_(data) {
 }
 
 function hardwareBlockText_(data, specs) {
-  if (data.hardwareSheet && typeof data.hardwareSheet === 'string') {
-    var sheet = data.hardwareSheet.trim();
-    if (sheet && sheet.indexOf('[object Object]') < 0) {
-      return sheet;
-    }
-  }
   return SPEC_KEYS.map(function (key) {
     return (SPEC_LABELS[key] || key) + ' : ' + specs[key];
   }).join('\n');
