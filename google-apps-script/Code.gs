@@ -78,7 +78,9 @@ function doPost(e) {
 }
 
 function secretOk_(given, expected) {
-  if (!expected || typeof given !== 'string' || given.length !== expected.length) return false;
+  given = typeof given === 'string' ? given.trim() : '';
+  expected = String(expected || '').trim();
+  if (!expected || !given || given.length !== expected.length) return false;
   var diff = 0;
   for (var i = 0; i < expected.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i);
   return diff === 0;

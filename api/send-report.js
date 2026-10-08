@@ -80,7 +80,7 @@ module.exports = async function handler(req, res) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
 
   var hookUrl = process.env.WEBHOOK_URL || allowedHookUrl(body.hookUrl);
-  var secret = process.env.GAS_SECRET || '';
+  var secret = String(process.env.GAS_SECRET || '').trim().replace(/\r/g, '');
   var hookType = process.env.HOOK_TYPE === 'formspree' ? 'formspree'
     : (body.hookType === 'formspree' ? 'formspree' : 'apps');
   if (!hookUrl || (hookType === 'apps' && !secret)) {
@@ -127,7 +127,11 @@ module.exports = async function handler(req, res) {
       var data;
       try { data = JSON.parse(text); } catch (e) { data = null; }
       if (!data || data.ok !== true) {
-        res.status(502).json({ ok: false, error: (data && data.error) || 'Unexpected response from Apps Script.' });
+        var errMsg = (data && data.error) || 'Unexpected response from Apps Script.';
+        if (errMsg === 'Unauthorized.') {
+          errMsg = 'Apps Script rejected the shared secret. In Script properties, set SECRET to the same value as Vercel GAS_SECRET (see GAS-SECRET.local.txt in the project).';
+        }
+        res.status(502).json({ ok: false, error: errMsg });
         return;
       }
     }
